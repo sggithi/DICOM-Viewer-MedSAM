@@ -6,6 +6,7 @@ from PyQt5.QtCore import *
 import numpy as np
 # from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
+
 class QPaintLabel3(QLabel):
 
     mpsignal = pyqtSignal(str)
@@ -39,31 +40,53 @@ class QPaintLabel3(QLabel):
 
     def mouseMoveEvent(self, event: QMouseEvent):
         super().mouseMoveEvent(event)
-        
-        # MARK: BoundingBox
+#
+#        if not self.mousein:
+#            self.slice_loc_restore = self.slice_loc.copy()
+#            self.mousein = True
+#        # MOUSE -> POSITION
+#        self.imgpos_x = int(event.x() * self.imgc / self.width())
+#        self.imgpos_y = int(event.y() * self.imgr / self.height())
+#
+#        if self.type == 'axial':
+#            self.slice_loc[0:2] = self.imgpos_x, self.imgpos_y
+#        elif self.type == 'sagittal':
+#            self.slice_loc[1:3] = self.imgpos_x, self.imgr - self.imgpos_y
+#        elif self.type == 'coronal':
+#            self.slice_loc[0] = self.imgpos_x
+#            self.slice_loc[2] = self.imgr - self.imgpos_y
+#        else:
+#            pass
+#        self.update()
         if event.buttons() & Qt.LeftButton:
             self.drag_end = event.pos()
             self.update()
 
-    def mouseReleaseEvent(self, event):
+    def leaveEvent(self, event):
+#        self.mousein = False
+#        self.slice_loc = self.slice_loc_restore
+#        self.update()
+        # MARK: - Bounding Box
         if event.button() == Qt.LeftButton:
             self.drag_end = event.pos()
-            # MARK: Print np Array
-            print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
+            print(self.drag_start, self.drag_end)
             self.update()
             self.drag_start = None
             self.drag_end = None
 
-    def leaveEvent(self, event):
-        self.slice_loc = self.slice_loc_restore
-        
-        self.update()
-        
     def mousePressEvent(self, event: QMouseEvent):
+#        self.crosscenter[0] = event.x()
+#        self.crosscenter[1] = event.y()
+
+#        self.mpsignal.emit(self.type)
+#
+#        self.slice_loc_restore = self.slice_loc.copy()
+        # MARK: - Bounding Box
         if event.button() == Qt.LeftButton:
             self.drag_start = event.pos()
             self.drag_end = event.pos()
             self.update()
+#        self.update()
 
     def display_image(self, window=1):
         self.imgr, self.imgc = self.processedImage.shape[0:2]
@@ -86,25 +109,31 @@ class QPaintLabel3(QLabel):
 
     def paintEvent(self, event):
         super().paintEvent(event)
-            
+        
+        # MARK: - Bounding Box
+        painter = QPainter(self)
+        painter.setPen(QColor(255, 0, 0))  # Set color to red
+    
+        if self.drag_start and self.drag_end:
+            rect = QRect(self.drag_start, self.drag_end).normalized()
+            painter.drawRect(rect)
+        
+        # 利用一個QFont來設定drawText的格式
         loc = QFont()
         loc.setPixelSize(10)
         loc.setBold(True)
         loc.setItalic(True)
         loc.setPointSize(15)
-        
-        # MARK: - Bounding Box
-
         if self.pixmap():
-            pixmap = self.pixmap()
             painter = QPainter(self)
+            pixmap = self.pixmap()
             painter.drawPixmap(self.rect(), pixmap)
-            
-            painter.setPen(QPen(Qt.red, 3))
-            if self.drag_start and self.drag_end:
-                rect = QRect(self.drag_start, self.drag_end).normalized()
-                painter.drawRect(rect)
-            
+
+            painter.setPen(QPen(Qt.magenta, 10))
+            painter.setFont(loc)
+            painter.drawText(5, self.height() - 5, 'x = %3d  ,  y = %3d  ,  z = %3d'
+                             % (self.slice_loc[0], self.slice_loc[1], self.slice_loc[2]))
+
             if self.type == 'axial':
                 # 畫直條
                 painter.setPen(QPen(Qt.red, 3))
@@ -140,9 +169,11 @@ class QPaintLabel3(QLabel):
 
             else:
                 pass
+        
 
 
 def linear_convert(img):
     convert_scale = 255.0 / (np.max(img) - np.min(img))
     converted_img = convert_scale*img-(convert_scale*np.min(img))
     return converted_img
+

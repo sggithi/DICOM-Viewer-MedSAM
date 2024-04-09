@@ -83,9 +83,9 @@ class CthreeD(QDialog):
 
         self.savesliceButton.clicked.connect(self.saveslice_clicked)
         self.dcmInfo = None
-        self.imgLabel_1.mpsignal.connect(self.cross_center_mouse)
-        self.imgLabel_2.mpsignal.connect(self.cross_center_mouse)
-        self.imgLabel_3.mpsignal.connect(self.cross_center_mouse)
+#        self.imgLabel_1.mpsignal.connect(self.cross_center_mouse)
+#        self.imgLabel_2.mpsignal.connect(self.cross_center_mouse)
+#        self.imgLabel_3.mpsignal.connect(self.cross_center_mouse)
 
         self.cross_recalc = True
         self.savenpyButton.clicked.connect(self.save_npy_clicked)
@@ -116,6 +116,7 @@ class CthreeD(QDialog):
         os.chdir(self.directory)
 
     def cross_center_mouse(self, _type):
+        print("MOUSE CLIKCED")
         self.cross_recalc = False
         if _type == 'axial':
             self.axial_hSlider.setValue(self.imgLabel_1.crosscenter[0] *
@@ -174,6 +175,7 @@ class CthreeD(QDialog):
         self.volWindow.setWindowTitle('3D View')
         self.volWindow.vol_show()
         self.volWindow.show()
+        print("called")
 
     def colormap_choice(self, text):
         self.colormap = self.colormapDict[text]

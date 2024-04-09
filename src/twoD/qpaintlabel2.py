@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import *
 from twoD import edgefunction as ef
 import cv2
 import numpy as np
@@ -28,6 +28,12 @@ class QPaintLabel2(QLabel):
         self.pos_xy = []
         self.mor_Kersize = 3
         self.mor_Iter = 3
+        
+        self.type = 'general'
+        self.setMouseTracking(True)
+        self.drag_start = None
+        self.drag_end = None
+
 
     def mouseMoveEvent(self, event):
         if self.drawornot:
@@ -37,6 +43,20 @@ class QPaintLabel2(QLabel):
             self.imgpos_y = int(self.pos_y * self.imgr / self.height())
             self.pos_xy.append((self.imgpos_x, self.imgpos_y))
             self.drawing()
+        
+        if event.buttons() & Qt.LeftButton:
+            self.drag_end = event.pos()
+            self.update()
+    
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.drag_end = event.pos()
+            # MARK: Print np Array
+            print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
+            self.update()
+            self.drag_start = None
+            self.drag_end = None
+
 
     def mousePressEvent(self, event):
         if self.drawornot:
@@ -53,6 +73,10 @@ class QPaintLabel2(QLabel):
             self.imgpos_y = int(self.pos_y * self.imgr / self.height())
             self.seed_clicked(seedx=self.imgpos_x, seedy=self.imgpos_y)
             self.seed = False
+        if event.button() == Qt.LeftButton:
+            self.drag_start = event.pos()
+            self.drag_end = event.pos()
+            self.update()
 
 # https://stackoverflow.com/questions/7501706/python-how-do-i-pass-variables-between-class-instances-or-get-the-caller
     def edge_detection(self, _type):
@@ -175,6 +199,27 @@ class QPaintLabel2(QLabel):
             self.display_image()
         cv2.destroyAllWindows()
         return outimg
+        
+    def paintEvent(self, event):
+        super().paintEvent(event)
+            
+        loc = QFont()
+        loc.setPixelSize(10)
+        loc.setBold(True)
+        loc.setItalic(True)
+        loc.setPointSize(15)
+        
+        # MARK: - Bounding Box
+
+        if self.pixmap():
+            pixmap = self.pixmap()
+            painter = QPainter(self)
+            painter.drawPixmap(self.rect(), pixmap)
+            
+            painter.setPen(QPen(Qt.red, 3))
+            if self.drag_start and self.drag_end:
+                rect = QRect(self.drag_start, self.drag_end).normalized()
+                painter.drawRect(rect)
 
 
 def get8n(x, y, shape):

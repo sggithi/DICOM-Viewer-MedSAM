@@ -128,7 +128,7 @@ def make_mesh(image, threshold=-300, step_size=10):
     p = image.transpose(2, 1, 0)
     print('Calculating surface')
     # verts是所有頂點，faces是所有三角形列表
-    verts, faces, norm, val = measure.marching_cubes_lewiner(p, threshold, spacing=(1, 1, 1),
+    verts, faces, norm, val = measure.marching_cubes(p, threshold, spacing=(1, 1, 1),
                                                              gradient_direction='descent', step_size=step_size,
                                                              allow_degenerate=True)
     return verts, faces
