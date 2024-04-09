@@ -7,7 +7,7 @@
   <br>
 </p>
 
-## 데모를 확인하세요!
+## 데모 버전
 ###  <a href="https://www.youtube.com/watch?v=TOXczNnnZ4c&feature=youtu.be">2D Image Processing</a>
 ### <a href="https://www.youtube.com/watch?v=NS75AQOVOss&feature=youtu.be">3D Image Processing</a>
   
@@ -20,7 +20,7 @@ Main Window를 열면，좌측 상단의 메뉴에서 2D processing와 3D proces
 </a>
 
 ### 2D processing
-기능
+포함하는 기능은 다음과 같습니다.
 - Load Image
 - Save Image
 - Convert to gray scale
@@ -37,7 +37,7 @@ Main Window를 열면，좌측 상단의 메뉴에서 2D processing와 3D proces
 
 
 ### 3D processing
-기능
+포함하는 기능은 다음과 같습니다.
 - Load DICOM stack
 - Save slice (axial, sagittal, coronal)
 - Colormap transform
