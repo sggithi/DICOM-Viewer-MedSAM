@@ -7,10 +7,6 @@
   <br>
 </p>
 
-## 데모 버전
-###  <a href="https://www.youtube.com/watch?v=TOXczNnnZ4c&feature=youtu.be">2D Image Processing</a>
-### <a href="https://www.youtube.com/watch?v=NS75AQOVOss&feature=youtu.be">3D Image Processing</a>
-  
 ## 실행 화면
 Main Window를 열면，좌측 상단의 메뉴에서 2D processing와 3D processing 선택 항목이 있습니다. 그 중 3D processing 메뉴에는 3D volume reconstruction 기능이 있습니다.
 
