@@ -9,10 +9,11 @@ import numpy as np
 class QPaintLabel3(QLabel):
 
     mpsignal = pyqtSignal(str)
+    crosshairDrawingNeeded = pyqtSignal()
 
     def __init__(self, parent):
         super(QLabel, self).__init__(parent)
-
+        self.parentReference = parent
         self.setMinimumSize(1, 1)
         self.image = None
         self.processedImage = None
@@ -37,19 +38,39 @@ class QPaintLabel3(QLabel):
         self.drag_start = None
         self.drag_end = None
 
+        self.toggleBoundingBoxEnabled = False
+        self.toggleSlicerEnabled = False
+
+        self.pen_color = Qt.red  # Default pen color
+        self.crosshairDrawingNeeded.connect(self.update)
+
+
     def mouseMoveEvent(self, event: QMouseEvent):
         super().mouseMoveEvent(event)
         
         # MARK: BoundingBox
-        if event.buttons() & Qt.LeftButton:
-            self.drag_end = event.pos()
-            self.update()
+        # Update the drag_end position for both bounding box and slicer functionality
+        self.drag_end = event.pos()
+        self.update()
+
+        if self.parentReference.toggleSlicerEnabled and event.buttons() & Qt.LeftButton:
+            # Adjust WW and WL for slicer functionality
+            wl_adjustment = self.drag_end.x() - self.drag_start.x()
+            ww_adjustment = self.drag_end.y() - self.drag_start.y()
+            self.parent().windowLevel += wl_adjustment
+            self.parent().windowWidth = max(1, self.parent().windowWidth + ww_adjustment)
+            self.parent().updateimg()
+            self.drag_start = self.drag_end
+
+
+
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.drag_end = event.pos()
-            # MARK: Print np Array
-            print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
+            if self.parentReference.toggleBoundingBoxEnabled:
+                # Print the bounding box coordinates
+                print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
             self.update()
             self.drag_start = None
             self.drag_end = None
@@ -93,54 +114,54 @@ class QPaintLabel3(QLabel):
         loc.setItalic(True)
         loc.setPointSize(15)
         
-        # MARK: - Bounding Box
-
         if self.pixmap():
             pixmap = self.pixmap()
             painter = QPainter(self)
             painter.drawPixmap(self.rect(), pixmap)
-            
+
+            # Draw the cross-hair lines
+            if not self.parentReference.toggleSlicerEnabled and not self.parentReference.toggleBoundingBoxEnabled:
+                if self.type == 'axial':
+                    # Draw vertical line
+                    painter.setPen(QPen(Qt.red, 3))
+                    painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
+                    # Draw horizontal line
+                    painter.setPen(QPen(Qt.cyan, 3))
+                    painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
+                    # Draw center point
+                    painter.setPen(QPen(Qt.yellow, 3))
+                    painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
+                elif self.type == 'sagittal':
+                    # Draw vertical line
+                    painter.setPen(QPen(Qt.cyan, 3))
+                    painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
+                    # Draw horizontal line
+                    painter.setPen(QPen(Qt.yellow, 3))
+                    painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
+                    # Draw center point
+                    painter.setPen(QPen(Qt.red, 3))
+                    painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
+                elif self.type == 'coronal':
+                    # Draw vertical line
+                    painter.setPen(QPen(Qt.red, 3))
+                    painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
+                    # Draw horizontal line
+                    painter.setPen(QPen(Qt.yellow, 3))
+                    painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
+                    # Draw center point
+                    painter.setPen(QPen(Qt.cyan, 3))
+                    painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
+                else:
+                    pass
+
+                self.crosshairDrawingNeeded.emit()
+        # Draw the bounding box if it's enabled
+        if self.parentReference.toggleBoundingBoxEnabled and self.drag_start and self.drag_end:
             painter.setPen(QPen(Qt.red, 3))
-            if self.drag_start and self.drag_end:
-                rect = QRect(self.drag_start, self.drag_end).normalized()
-                painter.drawRect(rect)
+            rect = QRect(self.drag_start, self.drag_end).normalized()
+            painter.drawRect(rect)
+
             
-            if self.type == 'axial':
-                # 畫直條
-                painter.setPen(QPen(Qt.red, 3))
-                painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
-                # 畫橫條
-                painter.setPen(QPen(Qt.cyan, 3))
-                painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
-                # 畫中心
-                painter.setPen(QPen(Qt.yellow, 3))
-                painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
-
-            elif self.type == 'sagittal':
-                # 畫直條
-                painter.setPen(QPen(Qt.cyan, 3))
-                painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
-                # 畫橫條
-                painter.setPen(QPen(Qt.yellow, 3))
-                painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
-                # 畫中心
-                painter.setPen(QPen(Qt.red, 3))
-                painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
-
-            elif self.type == 'coronal':
-                # 畫直條
-                painter.setPen(QPen(Qt.red, 3))
-                painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
-                # 畫橫條
-                painter.setPen(QPen(Qt.yellow, 3))
-                painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
-                # 畫中心
-                painter.setPen(QPen(Qt.cyan, 3))
-                painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
-
-            else:
-                pass
-
 
 def linear_convert(img):
     convert_scale = 255.0 / (np.max(img) - np.min(img))
