@@ -55,6 +55,7 @@ Main Window를 열면，좌측 상단의 메뉴에서 2D processing와 3D proces
 
 ## How to use it?
 Project root will be **/src**, just clone it and run mainwindow.py.
+work_dir/MedSAM 폴더에 https://drive.google.com/drive/folders/1ETWmi4AiniJeWOt6HAsYgTjYv_fkgzoN checkpoint 저장
 
 
 
