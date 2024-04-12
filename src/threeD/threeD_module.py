@@ -6,6 +6,11 @@ import cv2
 import threeD.loaddicomfile as ldf
 import numpy as np
 from threeD.vol_view_module import C3dView
+from threeD.qpaintlabel3 import QPaintLabel3
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class CthreeD(QDialog):
@@ -16,6 +21,7 @@ class CthreeD(QDialog):
         self.directory = os.getcwd()
         loadUi('threeD_module.ui', self)
         self.setWindowTitle('3D Processing')
+        self.UiComponents() 
         self.image = None
         self.voxel = None
         self.processedvoxel = None
@@ -30,21 +36,21 @@ class CthreeD(QDialog):
         self.coronal_vSlider.valueChanged.connect(self.updateimg)
         self.colormap = None
         # 這樣可以把"被activate"的Item轉成str傳入connect的function（也可以用int之類的，會被enum）
-        self.colormapBox.activated[str].connect(self.colormap_choice)
-        self.colormapDict = {'GRAY': None,
-                             'AUTUMN': cv2.COLORMAP_AUTUMN,
-                             'BONE': cv2.COLORMAP_BONE,
-                             'COOL': cv2.COLORMAP_COOL,
-                             'HOT': cv2.COLORMAP_HOT,
-                             'HSV': cv2.COLORMAP_HSV,
-                             'JET': cv2.COLORMAP_JET,
-                             'OCEAN': cv2.COLORMAP_OCEAN,
-                             'PINK': cv2.COLORMAP_PINK,
-                             'RAINBOW': cv2.COLORMAP_RAINBOW,
-                             'SPRING': cv2.COLORMAP_SPRING,
-                             'SUMMER': cv2.COLORMAP_SUMMER,
-                             'WINTER': cv2.COLORMAP_WINTER
-                             }
+        # self.colormapBox.activated[str].connect(self.colormap_choice)
+        # self.colormapDict = {'GRAY': None,
+        #                      'AUTUMN': cv2.COLORMAP_AUTUMN,
+        #                      'BONE': cv2.COLORMAP_BONE,
+        #                      'COOL': cv2.COLORMAP_COOL,
+        #                      'HOT': cv2.COLORMAP_HOT,
+        #                      'HSV': cv2.COLORMAP_HSV,
+        #                      'JET': cv2.COLORMAP_JET,
+        #                      'OCEAN': cv2.COLORMAP_OCEAN,
+        #                      'PINK': cv2.COLORMAP_PINK,
+        #                      'RAINBOW': cv2.COLORMAP_RAINBOW,
+        #                      'SPRING': cv2.COLORMAP_SPRING,
+        #                      'SUMMER': cv2.COLORMAP_SUMMER,
+        #                      'WINTER': cv2.COLORMAP_WINTER
+        #                      }
         self.volButton.clicked.connect(self.open_3dview)
 
         self.w, self.h = self.imgLabel_1.width(), self.imgLabel_1.height()
@@ -93,6 +99,93 @@ class CthreeD(QDialog):
         self.downscaled = 2
         self.dsampleButton.clicked.connect(self.downsample)
 
+
+    def UiComponents(self): 
+    
+            # creating a push button 
+
+            self.windowWidth = 400  # Default window width
+            self.windowLevel = 40   # Default window level
+
+            # Toggle slicer button next to the colormap selector
+            self.toggleSlicerButton = QPushButton("HU windowing", self)
+            self.toggleSlicerButton.clicked.connect(self.toggle_slicer_functionality)
+            self.colormap_hBox.insertWidget(1, self.toggleSlicerButton)
+
+            # Toggle button for bounding box
+            self.toggleBoundingBoxButton = QPushButton("Bounding Box", self)
+            self.toggleBoundingBoxButton.clicked.connect(self.toggle_bounding_box_functionality)
+            self.colormap_hBox.insertWidget(2, self.toggleBoundingBoxButton)
+
+            self.toggleSlicerEnabled = False
+            self.toggleBoundingBoxEnabled = False
+
+            self.wwlLabel = QLabel(self)
+            self.wwlLabel.setFont(QFont("Arial", 12))
+            self.wwlLabel.setAlignment(Qt.AlignCenter)
+            self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
+            self.colormap_hBox.addWidget(self.wwlLabel)
+        
+            # setting geometry of button 
+            self.toggleSlicerButton.setGeometry(200, 150, 100, 40) 
+            self.toggleBoundingBoxButton.setGeometry(200, 150, 100, 40)
+    
+            # Initially, buttons are gray
+            self.toggleSlicerButton.setStyleSheet("background-color : transparent") 
+            self.toggleBoundingBoxButton.setStyleSheet("background-color : transparent")
+            
+    
+        
+    @staticmethod
+    def adjust_image_based_on_ww_wl(img, ww, wl):
+        lower_bound = wl - ww / 2
+        upper_bound = wl + ww / 2
+        img_adjusted = np.clip((img - lower_bound) / (upper_bound - lower_bound) * 255, 0, 255)
+        return img_adjusted.astype(np.uint8)
+
+    def toggle_slicer_functionality(self):
+        self.toggleSlicerEnabled = not self.toggleSlicerEnabled
+        self.toggleBoundingBoxButton.setChecked(not self.toggleSlicerEnabled)
+        self.toggleBoundingBoxEnabled = not self.toggleSlicerEnabled
+
+        if self.toggleSlicerEnabled:
+            self.imgLabel_1.setMouseTracking(True)
+            self.imgLabel_2.setMouseTracking(True)
+            self.imgLabel_3.setMouseTracking(True)
+            self.imgLabel_1.type = 'axial'
+            self.imgLabel_2.type = 'sagittal'
+            self.imgLabel_3.type = 'coronal'
+            self.toggleSlicerButton.setStyleSheet("background-color : #ffd700")
+            self.toggleBoundingBoxButton.setStyleSheet("background-color : transparent")
+        else:
+            self.imgLabel_1.setMouseTracking(False)
+            self.imgLabel_2.setMouseTracking(False)
+            self.imgLabel_3.setMouseTracking(False)
+            self.imgLabel_1.type = 'axial'
+            self.imgLabel_2.type = 'sagittal'
+            self.imgLabel_3.type = 'coronal'
+            self.toggleSlicerButton.setStyleSheet("background-color : transparent")
+        self.updateimg()
+
+    def toggle_bounding_box_functionality(self):
+        self.toggleBoundingBoxEnabled = not self.toggleBoundingBoxEnabled
+        self.toggleSlicerButton.setChecked(not self.toggleBoundingBoxEnabled)
+        self.toggleSlicerEnabled = not self.toggleBoundingBoxEnabled
+
+        if self.toggleBoundingBoxEnabled:
+            self.imgLabel_1.type = 'axial'
+            self.imgLabel_2.type = 'sagittal'
+            self.imgLabel_3.type = 'coronal'
+            self.toggleBoundingBoxButton.setStyleSheet("background-color : #ffd700")
+            self.toggleSlicerButton.setStyleSheet("background-color : transparent")
+        else:
+            self.imgLabel_1.type = 'axial'
+            self.imgLabel_2.type = 'sagittal'
+            self.imgLabel_3.type = 'coronal'
+            self.toggleBoundingBoxButton.setStyleSheet("background-color : transparent")
+        self.updateimg()
+
+
     def downsample(self):
         self.processedvoxel = self.processedvoxel[::self.downscaled, ::self.downscaled, ::self.downscaled]
         self.update_shape()
@@ -115,39 +208,39 @@ class CthreeD(QDialog):
     def set_directory(self):
         os.chdir(self.directory)
 
-    def cross_center_mouse(self, _type):
-        print("MOUSE CLIKCED")
-        self.cross_recalc = False
-        if _type == 'axial':
-            self.axial_hSlider.setValue(self.imgLabel_1.crosscenter[0] *
-                                        self.axial_hSlider.maximum() / self.imgLabel_1.width())
-            self.axial_vSlider.setValue(self.imgLabel_1.crosscenter[1] *
-                                        self.axial_vSlider.maximum() / self.imgLabel_1.height())
-        elif _type == 'sagittal':
-            self.sagittal_hSlider.setValue(self.imgLabel_2.crosscenter[0] *
-                                           self.sagittal_hSlider.maximum() / self.imgLabel_2.width())
-            self.sagittal_vSlider.setValue(self.imgLabel_2.crosscenter[1] *
-                                           self.sagittal_vSlider.maximum() / self.imgLabel_2.height())
-        elif _type == 'coronal':
-            self.coronal_hSlider.setValue(self.imgLabel_3.crosscenter[0] *
-                                          self.coronal_hSlider.maximum() / self.imgLabel_3.width())
-            self.coronal_vSlider.setValue(self.imgLabel_3.crosscenter[1] *
-                                          self.coronal_vSlider.maximum() / self.imgLabel_3.height())
-        else:
-            pass
+    # def cross_center_mouse(self, _type):
+    #     print("MOUSE CLIKCED")
+    #     self.cross_recalc = False
+    #     if _type == 'axial':
+    #         self.axial_hSlider.setValue(self.imgLabel_1.crosscenter[0] *
+    #                                     self.axial_hSlider.maximum() / self.imgLabel_1.width())
+    #         self.axial_vSlider.setValue(self.imgLabel_1.crosscenter[1] *
+    #                                     self.axial_vSlider.maximum() / self.imgLabel_1.height())
+    #     elif _type == 'sagittal':
+    #         self.sagittal_hSlider.setValue(self.imgLabel_2.crosscenter[0] *
+    #                                        self.sagittal_hSlider.maximum() / self.imgLabel_2.width())
+    #         self.sagittal_vSlider.setValue(self.imgLabel_2.crosscenter[1] *
+    #                                        self.sagittal_vSlider.maximum() / self.imgLabel_2.height())
+    #     elif _type == 'coronal':
+    #         self.coronal_hSlider.setValue(self.imgLabel_3.crosscenter[0] *
+    #                                       self.coronal_hSlider.maximum() / self.imgLabel_3.width())
+    #         self.coronal_vSlider.setValue(self.imgLabel_3.crosscenter[1] *
+    #                                       self.coronal_vSlider.maximum() / self.imgLabel_3.height())
+    #     else:
+    #         pass
 
-        self.imgLabel_1.crosscenter = [
-            self.axial_hSlider.value() * self.imgLabel_1.width() / self.axial_hSlider.maximum(),
-            self.axial_vSlider.value() * self.imgLabel_1.height() / self.axial_vSlider.maximum()]
-        self.imgLabel_2.crosscenter = [
-            self.sagittal_hSlider.value() * self.imgLabel_2.width() / self.sagittal_hSlider.maximum(),
-            self.sagittal_vSlider.value() * self.imgLabel_2.height() / self.sagittal_vSlider.maximum()]
-        self.imgLabel_3.crosscenter = [
-            self.coronal_hSlider.value() * self.imgLabel_3.width() / self.coronal_hSlider.maximum(),
-            self.coronal_vSlider.value() * self.imgLabel_3.height() / self.coronal_vSlider.maximum()]
-        self.updateimg()
+    #     self.imgLabel_1.crosscenter = [
+    #         self.axial_hSlider.value() * self.imgLabel_1.width() / self.axial_hSlider.maximum(),
+    #         self.axial_vSlider.value() * self.imgLabel_1.height() / self.axial_vSlider.maximum()]
+    #     self.imgLabel_2.crosscenter = [
+    #         self.sagittal_hSlider.value() * self.imgLabel_2.width() / self.sagittal_hSlider.maximum(),
+    #         self.sagittal_vSlider.value() * self.imgLabel_2.height() / self.sagittal_vSlider.maximum()]
+    #     self.imgLabel_3.crosscenter = [
+    #         self.coronal_hSlider.value() * self.imgLabel_3.width() / self.coronal_hSlider.maximum(),
+    #         self.coronal_vSlider.value() * self.imgLabel_3.height() / self.coronal_vSlider.maximum()]
+    #     self.updateimg()
 
-        self.cross_recalc = True
+    #     self.cross_recalc = True
 
     def saveslice_clicked(self):
         fname, _filter = QFileDialog.getSaveFileName(self, 'save file', '~/untitled', "Image Files (*.jpg)")
@@ -177,9 +270,9 @@ class CthreeD(QDialog):
         self.volWindow.show()
         print("called")
 
-    def colormap_choice(self, text):
-        self.colormap = self.colormapDict[text]
-        self.updateimg()
+    # def colormap_choice(self, text):
+    #     self.colormap = self.colormapDict[text]
+    #     self.updateimg()
 
     def dicom_clicked(self):
         dname = QFileDialog.getExistingDirectory(self, 'choose dicom directory')
@@ -254,9 +347,23 @@ class CthreeD(QDialog):
             self.imgLabel_2.processedImage = cv2.applyColorMap(sagittal, self.colormap)
             self.imgLabel_3.processedImage = cv2.applyColorMap(coronal, self.colormap)
 
+        axial_adjusted = self.adjust_image_based_on_ww_wl(axial, self.windowWidth, self.windowLevel)
+        sagittal_adjusted = self.adjust_image_based_on_ww_wl(sagittal, self.windowWidth, self.windowLevel)
+        coronal_adjusted = self.adjust_image_based_on_ww_wl(coronal, self.windowWidth, self.windowLevel)
+
+        # Update processedImage for each label
+        self.imgLabel_1.processedImage = axial_adjusted
+        self.imgLabel_2.processedImage = sagittal_adjusted
+        self.imgLabel_3.processedImage = coronal_adjusted
+
+        # Display the adjusted images
         self.imgLabel_1.display_image(1)
         self.imgLabel_2.display_image(1)
         self.imgLabel_3.display_image(1)
+
+        # Update the WW and WL label
+        self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
+
 
     @staticmethod
     def linear_convert(img):
