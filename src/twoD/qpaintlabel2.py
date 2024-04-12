@@ -84,6 +84,9 @@ class QPaintLabel2(QLabel):
 
             sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
             self.prev_mask = self.mask_c.copy()
+            print("mask", sam_mask.shape)
+            # initialize 
+            self.mask_c = np.zeros((*self.image.shape[:2], 3), dtype="uint8") # (512, 512)
             self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
             self.color_idx += 1
 
@@ -171,20 +174,20 @@ class QPaintLabel2(QLabel):
         else:
             img_3c = self.image
 
-        img_1024 = transform.resize(
+        img_256 = transform.resize(
             img_3c, (256, 256), order=3, preserve_range=True, anti_aliasing=True
         ).astype(np.uint8)
-        img_1024_norm = (img_1024 - img_1024.min()) / np.clip(
-        img_1024.max() - img_1024.min(), a_min=1e-8, a_max=None
+        img_256_norm = (img_256 - img_256.min()) / np.clip(
+        img_256.max() - img_256.min(), a_min=1e-8, a_max=None
     )  
     
-        img_1024_tensor = (
-            torch.tensor(img_1024_norm).float().permute(2, 0, 1).unsqueeze(0).to(device)
+        img_256_tensor = (
+            torch.tensor(img_256_norm).float().permute(2, 0, 1).unsqueeze(0).to(device)
         )
         print("Getting img embedding")
-        self.embedding = medsam_lite_model.image_encoder(img_1024_tensor) # (1, 256, 64, 64)
+        self.embedding = medsam_lite_model.image_encoder(img_256_tensor) # (1, 256, 64, 64)
         self.img_3c = img_3c
-        self.mask_c = np.zeros((*self.image.shape[:2], 3), dtype="uint8")
+        self.mask_c = np.zeros((*self.image.shape[:2], 3), dtype="uint8") # (512, 512)
         self.processedImage = self.image.copy()
         self.originalImage = self.processedImage
         self.imgr, self.imgc = self.processedImage.shape[0:2]
@@ -235,7 +238,6 @@ class QPaintLabel2(QLabel):
 
     def region_growing(self, img, seed):
         _list = []
-        # zeros_like建構一個和img的shape一樣但都是zeros的矩陣，和np.zeros(img.shape)應該是一樣的
         outimg = np.zeros_like(img)
         _list.append((seed[0], seed[1]))
         processed = []
