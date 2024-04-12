@@ -120,19 +120,19 @@ class CthreeD(QDialog):
             self.toggleSlicerEnabled = False
             self.toggleBoundingBoxEnabled = False
 
+            # This spacer will push everything to the left of it to the left, and everything to the right of it to the right
+            self.colormap_hBox.addStretch(1)
+
             self.wwlLabel = QLabel(self)
             self.wwlLabel.setFont(QFont("Arial", 12))
             self.wwlLabel.setAlignment(Qt.AlignCenter)
             self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
+            self.wwlLabel.setStyleSheet("QLabel { margin: 5px; }")  
             self.colormap_hBox.addWidget(self.wwlLabel)
-        
-            # setting geometry of button 
-            self.toggleSlicerButton.setGeometry(200, 150, 100, 40) 
-            self.toggleBoundingBoxButton.setGeometry(200, 150, 100, 40)
     
             # Initially, buttons are gray
-            self.toggleSlicerButton.setStyleSheet("background-color : transparent") 
-            self.toggleBoundingBoxButton.setStyleSheet("background-color : transparent")
+            self.toggleSlicerButton.setStyleSheet(" background-color : transparent; margin: 5px; padding: 5px;")
+            self.toggleBoundingBoxButton.setStyleSheet(" background-color : transparent; margin: 5px; padding: 5px;")
             
     
         
