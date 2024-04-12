@@ -788,15 +788,15 @@ QComboBox::down-arrow {
          <height>0</height>
         </size>
        </property>
-       <property name="text">
+       <!-- <property name="text">
         <string>ColorMap</string>
-       </property>
+       </property> -->
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
        </property>
       </widget>
      </item>
-     <item>
+     <!-- <item>
       <widget class="QComboBox" name="colormapBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -809,14 +809,14 @@ QComboBox::down-arrow {
          <width>1</width>
          <height>0</height>
         </size>
-       </property>
-       <property name="cursor">
+       </property> -->
+       <!-- <property name="cursor">
         <cursorShape>PointingHandCursor</cursorShape>
        </property>
        <property name="focusPolicy">
         <enum>Qt::NoFocus</enum>
-       </property>
-       <item>
+       </property> -->
+       <!-- <item>
         <property name="text">
          <string>GRAY</string>
         </property>
@@ -875,14 +875,14 @@ QComboBox::down-arrow {
         <property name="text">
          <string>SUMMER</string>
         </property>
-       </item>
+       </item> 
        <item>
         <property name="text">
          <string>WINTER</string>
         </property>
-       </item>
-      </widget>
-     </item>
+       </item> -->
+      <!-- </widget>
+     </item> -->
      <item>
       <widget class="QPushButton" name="dsampleButton">
        <property name="sizePolicy">
