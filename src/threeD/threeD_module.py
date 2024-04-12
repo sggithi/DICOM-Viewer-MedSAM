@@ -161,9 +161,9 @@ class CthreeD(QDialog):
             self.imgLabel_1.setMouseTracking(False)
             self.imgLabel_2.setMouseTracking(False)
             self.imgLabel_3.setMouseTracking(False)
-            self.imgLabel_1.type = 'general'
-            self.imgLabel_2.type = 'general'
-            self.imgLabel_3.type = 'general'
+            self.imgLabel_1.type = 'axial'
+            self.imgLabel_2.type = 'sagittal'
+            self.imgLabel_3.type = 'coronal'
             self.toggleSlicerButton.setStyleSheet("background-color : transparent")
         self.updateimg()
 
@@ -173,9 +173,9 @@ class CthreeD(QDialog):
         self.toggleSlicerEnabled = not self.toggleBoundingBoxEnabled
 
         if self.toggleBoundingBoxEnabled:
-            self.imgLabel_1.type = 'general'
-            self.imgLabel_2.type = 'general'
-            self.imgLabel_3.type = 'general'
+            self.imgLabel_1.type = 'axial'
+            self.imgLabel_2.type = 'sagittal'
+            self.imgLabel_3.type = 'coronal'
             self.toggleBoundingBoxButton.setStyleSheet("background-color : #ffd700")
             self.toggleSlicerButton.setStyleSheet("background-color : transparent")
         else:
