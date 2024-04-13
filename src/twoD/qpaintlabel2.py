@@ -46,7 +46,8 @@ class QPaintLabel2(QLabel):
         self.setMouseTracking(True)
         self.drag_start = None
         self.drag_end = None
-        self.mask_c = None
+        
+        self.mask_c =  None
         self.embedding = None
         self.prev_mask = None
         self.color_idx = 0
@@ -77,13 +78,13 @@ class QPaintLabel2(QLabel):
             xmax = max(ex, sx)
             ymin = min(ey, sy)
             ymax = max(ey, sy)
-            box_np = np.array([[xmin, ymin, xmax, ymax]])
             
             H, W, = self.image.shape # 3D H, W, _
+            box_np = np.array([[xmin, ymin, xmax, ymax]])
             box_256 = box_np / np.array([W, H, W, H]) * 256
-            
+
             sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
-            self.prev_mask = self.mask_c.copy()
+            # self.prev_mask = self.mask_c.copy()
             
             # initialize 
   
@@ -186,7 +187,6 @@ class QPaintLabel2(QLabel):
         print("Getting img embedding")
         self.embedding = medsam_lite_model.image_encoder(img_256_tensor) # (1, 256, 64, 64)
         self.img_3c = img_3c
-        self.mask_c = np.zeros((*self.image.shape[:2], 3), dtype="uint8") # (512, 512)
         self.processedImage = self.image.copy()
         self.originalImage = self.processedImage
         self.imgr, self.imgc = self.processedImage.shape[0:2]

@@ -373,8 +373,8 @@ from segment_anything import sam_model_registry
 
 
 @torch.no_grad()
-def medsam_inference(medsam_model, img_embed, box_1024, height, width):
-    box_torch = torch.as_tensor(box_1024, dtype=torch.float, device=img_embed.device)
+def medsam_inference(medsam_model, img_embed, box_256, height, width):
+    box_torch = torch.as_tensor(box_256, dtype=torch.float, device=img_embed.device)
     if len(box_torch.shape) == 2:
         box_torch = box_torch[:, None, :]  # (B, 1, 4)
 
