@@ -70,7 +70,7 @@ class QPaintLabel2(QLabel):
         if event.button() == Qt.LeftButton:
             self.drag_end = event.pos()
             # MARK: Print np Array
-            print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
+            print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_end.y()]))
             ex, ey = self.drag_end.x(), self.drag_end.y()
             sx, sy = self.drag_start.x(), self.drag_start.y()
             xmin = min(ex, sx)
@@ -78,21 +78,21 @@ class QPaintLabel2(QLabel):
             ymin = min(ey, sy)
             ymax = max(ey, sy)
             box_np = np.array([[xmin, ymin, xmax, ymax]])
-      
+            
             H, W, = self.image.shape # 3D H, W, _
             box_256 = box_np / np.array([W, H, W, H]) * 256
-
+            
             sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
             self.prev_mask = self.mask_c.copy()
-            print("mask", sam_mask.shape)
+            
             # initialize 
-            self.mask_c = np.zeros((*self.image.shape[:2], 3), dtype="uint8") # (512, 512)
-            self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
+  
+            self.mask_c = np.zeros((W,H), dtype="uint8") # (512, 512)
+            #self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
+            self.mask_c[sam_mask != 0] = 255
             self.color_idx += 1
 
-            mask_c_gray = cv2.cvtColor(self.mask_c, cv2.COLOR_BGR2GRAY)
-            masked_image = cv2.add(self.originalImage, mask_c_gray)
-
+            masked_image = cv2.add(self.originalImage, self.mask_c)
             self.processedImage = masked_image
             self.display_image()
 
@@ -180,7 +180,6 @@ class QPaintLabel2(QLabel):
         img_256_norm = (img_256 - img_256.min()) / np.clip(
         img_256.max() - img_256.min(), a_min=1e-8, a_max=None
     )  
-    
         img_256_tensor = (
             torch.tensor(img_256_norm).float().permute(2, 0, 1).unsqueeze(0).to(device)
         )

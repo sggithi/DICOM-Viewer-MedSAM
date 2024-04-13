@@ -401,6 +401,7 @@ def medsam_inference(medsam_model, img_embed, box_1024, height, width):
     )  # (1, 1, gt.shape)
     low_res_pred = low_res_pred.squeeze().cpu().numpy()  # (256, 256)
     medsam_seg = (low_res_pred > 0.5).astype(np.uint8)
+
     return medsam_seg
 
 
