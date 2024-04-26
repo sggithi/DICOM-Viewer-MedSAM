@@ -6,7 +6,21 @@ from twoD import edgefunction as ef
 import cv2
 import numpy as np
 import pydicom
+from medsam_infer import *
+from PIL import Image
+import PyQt5.QtGui
 
+from PyQt5.QtGui import (
+    QImage,
+)
+from PyQt5.QtWidgets import (
+    QGraphicsScene,
+)
+
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class QPaintLabel2(QLabel):
 
@@ -14,7 +28,6 @@ class QPaintLabel2(QLabel):
         super(QLabel, self).__init__(parent)
         self.window = None
         self.setMouseTracking(False)
-        # 為了能resize scale down, 要setMinimumSize，不然會被辨認為不可縮小
         self.setMinimumSize(1, 1)
         self.drawornot, self.seed = False, False
         self.image = None
@@ -24,15 +37,21 @@ class QPaintLabel2(QLabel):
         self.pos_y = 20
         self.imgpos_x = 0
         self.imgpos_y = 0
-        # 遇到list就停，圖上的顯示白色只是幌子
         self.pos_xy = []
         self.mor_Kersize = 3
         self.mor_Iter = 3
+        self.originalImage = None
         
         self.type = 'general'
         self.setMouseTracking(True)
         self.drag_start = None
         self.drag_end = None
+        
+        self.mask_c =  None
+        self.embedding = None
+        self.prev_mask = None
+        self.color_idx = 0
+   
 
 
     def mouseMoveEvent(self, event):
@@ -52,7 +71,32 @@ class QPaintLabel2(QLabel):
         if event.button() == Qt.LeftButton:
             self.drag_end = event.pos()
             # MARK: Print np Array
-            print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
+            print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_end.y()]))
+            ex, ey = self.drag_end.x(), self.drag_end.y()
+            sx, sy = self.drag_start.x(), self.drag_start.y()
+            xmin = min(ex, sx)
+            xmax = max(ex, sx)
+            ymin = min(ey, sy)
+            ymax = max(ey, sy)
+            
+            H, W, = self.image.shape # 3D H, W, _
+            box_np = np.array([[xmin, ymin, xmax, ymax]])
+            box_256 = box_np / np.array([W, H, W, H]) * 256
+
+            sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
+            # self.prev_mask = self.mask_c.copy()
+            
+            # initialize 
+  
+            self.mask_c = np.zeros((W,H), dtype="uint8") # (512, 512)
+            #self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
+            self.mask_c[sam_mask != 0] = 255
+            self.color_idx += 1
+
+            masked_image = cv2.add(self.originalImage, self.mask_c)
+            self.processedImage = masked_image
+            self.display_image()
+
             self.update()
             self.drag_start = None
             self.drag_end = None
@@ -125,7 +169,26 @@ class QPaintLabel2(QLabel):
         print(np.nanmax(dcm.pixel_array), np.nanmin(dcm.pixel_array))
         dcm.image = dcm.pixel_array * dcm.RescaleSlope + dcm.RescaleIntercept
         self.image = linear_convert(dcm.image).astype(np.uint8)
+
+        if len(self.image.shape) == 2:
+            img_3c = np.repeat(self.image[:, :, None], 3, axis=-1)
+        else:
+            img_3c = self.image
+
+        img_256 = transform.resize(
+            img_3c, (256, 256), order=3, preserve_range=True, anti_aliasing=True
+        ).astype(np.uint8)
+        img_256_norm = (img_256 - img_256.min()) / np.clip(
+        img_256.max() - img_256.min(), a_min=1e-8, a_max=None
+    )  
+        img_256_tensor = (
+            torch.tensor(img_256_norm).float().permute(2, 0, 1).unsqueeze(0).to(device)
+        )
+        print("Getting img embedding")
+        self.embedding = medsam_lite_model.image_encoder(img_256_tensor) # (1, 256, 64, 64)
+        self.img_3c = img_3c
         self.processedImage = self.image.copy()
+        self.originalImage = self.processedImage
         self.imgr, self.imgc = self.processedImage.shape[0:2]
         self.display_image()
 
@@ -148,9 +211,7 @@ class QPaintLabel2(QLabel):
         img = QImage(self.processedImage, self.processedImage.shape[1],
                      self.processedImage.shape[0], self.processedImage.strides[0], qformat)
         img = img.rgbSwapped()
-        # 讓image跟著Qlabel大小改變
         self.setScaledContents(True)
-        # 扣掉線寬才不會讓qlabel變大
         backlash = self.lineWidth()*2
         self.setPixmap(QPixmap.fromImage(img).scaled(w-backlash, h-backlash, Qt.IgnoreAspectRatio))
         self.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
@@ -176,24 +237,18 @@ class QPaintLabel2(QLabel):
 
     def region_growing(self, img, seed):
         _list = []
-        # zeros_like建構一個和img的shape一樣但都是zeros的矩陣，和np.zeros(img.shape)應該是一樣的
         outimg = np.zeros_like(img)
         _list.append((seed[0], seed[1]))
         processed = []
-        # 當list有值，就挑第一個list[0]進行處理，如果list[0]的值不是0(即是255)，就把新影像list[0]位置設為255
-        # 周遭是255的位置在新影像也都設成255，並進入待處理區
         while len(_list) > 0:
             pix = _list[0]
             outimg[pix[0], pix[1]] = 255
             for coord in get8n(pix[0], pix[1], img.shape):
                 if img[coord[0], coord[1]] != 0:
                     outimg[coord[0], coord[1]] = 255
-                    # 放在list裡面的都會被拿出來處理，所以如果不在processed裡面，代表還沒被放到預備處理區（即list）
-                    # 就把他放進去list，然後也放進processed，代表已經進入預備處理區了
                     if coord not in processed:
                         _list.append(coord)
                     processed.append(coord)
-            # 處理過的就離開預備處理清單list, processed不刪掉，因為做過的就是做過了
             _list.pop(0)
             self.processedImage = outimg
             self.display_image()
@@ -221,6 +276,11 @@ class QPaintLabel2(QLabel):
                 rect = QRect(self.drag_start, self.drag_end).normalized()
                 painter.drawRect(rect)
 
+def np2pixmap(np_img):
+    height, width, channel = np_img.shape
+    bytesPerLine = 3 * width
+    qImg = QImage(np_img.data, width, height, bytesPerLine, QImage.Format_RGB888)
+    return QPixmap.fromImage(qImg)
 
 def get8n(x, y, shape):
     out = []

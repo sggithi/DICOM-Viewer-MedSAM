@@ -32,6 +32,9 @@ class CtwoD(QDialog):
         self.undoButton.setText('')
         self.grayButton.clicked.connect(self.gray_clicked)
 
+        self.imgLabel_1.setFixedSize(512, 512)
+        self.imgLabel_2.setFixedSize(512, 512)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if self.imgLabel_1.processedImage is not None:
