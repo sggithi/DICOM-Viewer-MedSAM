@@ -78,28 +78,6 @@ class QPaintLabel2(QLabel):
 
             # Open the modal dialog to confirm or adjust the bounding box
             self.open_adjustment_dialog(xmin, ymin, xmax, ymax)
-            
-            # H, W, = self.image.shape # 3D H, W, _
-            # box_np = np.array([[xmin, ymin, xmax, ymax]])
-            # box_256 = box_np / np.array([W, H, W, H]) * 256
-
-            # sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
-            # # self.prev_mask = self.mask_c.copy()
-            
-            # # initialize 
-  
-            # self.mask_c = np.zeros((W,H), dtype="uint8") # (512, 512)
-            # #self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
-            # self.mask_c[sam_mask != 0] = 255
-            # self.color_idx += 1
-
-            # masked_image = cv2.add(self.originalImage, self.mask_c)
-            # self.processedImage = masked_image
-            # self.display_image()
-
-            # self.update()
-            # self.drag_start = None
-            # self.drag_end = None
 
     def segment_image(self, xmin, ymin, xmax, ymax):
         # Convert bounding box to the scale the model expects (e.g., 256x256)
