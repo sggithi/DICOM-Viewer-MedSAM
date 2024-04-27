@@ -17,10 +17,7 @@ from PyQt5.QtWidgets import (
     QGraphicsScene,
 )
 
-if torch.backends.mps.is_available():
-    device = torch.device("mps")
-else:
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class QPaintLabel2(QLabel):
 
@@ -78,29 +75,60 @@ class QPaintLabel2(QLabel):
             xmax = max(ex, sx)
             ymin = min(ey, sy)
             ymax = max(ey, sy)
-            
-            H, W, = self.image.shape # 3D H, W, _
-            box_np = np.array([[xmin, ymin, xmax, ymax]])
-            box_256 = box_np / np.array([W, H, W, H]) * 256
 
-            sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
-            # self.prev_mask = self.mask_c.copy()
+            # Open the modal dialog to confirm or adjust the bounding box
+            self.open_adjustment_dialog(xmin, ymin, xmax, ymax)
             
-            # initialize 
+            # H, W, = self.image.shape # 3D H, W, _
+            # box_np = np.array([[xmin, ymin, xmax, ymax]])
+            # box_256 = box_np / np.array([W, H, W, H]) * 256
+
+            # sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
+            # # self.prev_mask = self.mask_c.copy()
+            
+            # # initialize 
   
-            self.mask_c = np.zeros((W,H), dtype="uint8") # (512, 512)
-            #self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
-            self.mask_c[sam_mask != 0] = 255
-            self.color_idx += 1
+            # self.mask_c = np.zeros((W,H), dtype="uint8") # (512, 512)
+            # #self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
+            # self.mask_c[sam_mask != 0] = 255
+            # self.color_idx += 1
 
-            masked_image = cv2.add(self.originalImage, self.mask_c)
-            self.processedImage = masked_image
-            self.display_image()
+            # masked_image = cv2.add(self.originalImage, self.mask_c)
+            # self.processedImage = masked_image
+            # self.display_image()
 
-            self.update()
-            self.drag_start = None
-            self.drag_end = None
+            # self.update()
+            # self.drag_start = None
+            # self.drag_end = None
 
+    def segment_image(self, xmin, ymin, xmax, ymax):
+        # Convert bounding box to the scale the model expects (e.g., 256x256)
+        H, W = self.originalImage.shape[:2]
+        box_np = np.array([[xmin, ymin, xmax, ymax]])
+        box_256 = box_np / np.array([W, H, W, H]) * 256
+
+        sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
+
+
+        self.mask_c = np.zeros((W,H), dtype="uint8") # (512, 512)
+        #self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
+        self.mask_c[sam_mask != 0] = 255
+        self.color_idx += 1
+
+        # add trasnparency to the mask
+        masked_image = cv2.addWeighted(self.originalImage, 1, self.mask_c[..., None], 0.4, 0)
+        self.processedImage = masked_image
+        self.display_image()
+
+        self.update()
+        self.drag_start = None
+        self.drag_end = None
+
+    def open_adjustment_dialog(self, xmin, ymin, xmax, ymax):
+        dialog = BoundingBoxDialog(self, xmin, ymin, xmax, ymax)
+        if dialog.exec_():  # Modal dialog
+            adjusted_box = dialog.get_adjusted_box()
+            self.segment_image(*adjusted_box)
 
     def mousePressEvent(self, event):
         if self.drawornot:
@@ -185,6 +213,7 @@ class QPaintLabel2(QLabel):
             torch.tensor(img_256_norm).float().permute(2, 0, 1).unsqueeze(0).to(device)
         )
         print("Getting img embedding")
+        print(img_256_tensor.shape)  # (1, 3, 256, 256) 
         self.embedding = medsam_lite_model.image_encoder(img_256_tensor) # (1, 256, 64, 64)
         self.img_3c = img_3c
         self.processedImage = self.image.copy()
@@ -325,3 +354,31 @@ def linear_convert(img):
     convert_scale = 255.0 / (np.max(img) - np.min(img))
     converted_img = convert_scale*img-(convert_scale*np.min(img))
     return converted_img
+
+class BoundingBoxDialog(QDialog):
+    def __init__(self, parent, xmin, ymin, xmax, ymax):
+        super().__init__(parent)
+        self.setWindowTitle("Adjust Bounding Box")
+        layout = QGridLayout(self)
+
+        # Labels and spin boxes for coordinates
+        labels = ["X Min:", "Y Min:", "X Max:", "Y Max:"]
+        self.spins = []
+        for i, label in enumerate(labels):
+            layout.addWidget(QLabel(label), i, 0)
+            spin = QSpinBox(self)
+            spin.setRange(0, parent.image.shape[1] if i % 2 == 0 else parent.image.shape[0])
+            spin.setValue([xmin, ymin, xmax, ymax][i])
+            self.spins.append(spin)
+            layout.addWidget(spin, i, 1)
+
+        # Confirm button
+        confirm_button = QPushButton("Confirm", self)
+        confirm_button.clicked.connect(self.accept)
+        layout.addWidget(confirm_button, 4, 0, 1, 2)
+
+    def get_adjusted_box(self):
+        return [spin.value() for spin in self.spins]
+
+    def accept(self):
+        super().accept()
