@@ -364,6 +364,10 @@ class BoundingBoxDialog(QDialog):
         self.graphics_rect = ResizableRectItem(self.rect)
         self.scene.addItem(self.graphics_rect)
 
+        # Focus and zoom in on the rectangle
+        self.view.centerOn(self.graphics_rect)
+        self.view.scale(2.0, 2.0)  # Apply 2x zoom
+
 
          # Zoom buttons
         self.zoomInButton = QPushButton("Zoom In", self)
