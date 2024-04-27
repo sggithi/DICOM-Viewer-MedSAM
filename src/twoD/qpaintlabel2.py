@@ -17,6 +17,9 @@ from PyQt5.QtWidgets import (
     QGraphicsScene,
 )
 
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGraphicsView, QGraphicsScene, QPushButton, QGraphicsRectItem, QGraphicsSceneMouseEvent
+from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen
+from PyQt5.QtCore import QRectF, Qt
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class QPaintLabel2(QLabel):
@@ -102,11 +105,13 @@ class QPaintLabel2(QLabel):
         self.drag_start = None
         self.drag_end = None
 
+    # modal for adjusting the bounding box
     def open_adjustment_dialog(self, xmin, ymin, xmax, ymax):
         dialog = BoundingBoxDialog(self, xmin, ymin, xmax, ymax)
-        if dialog.exec_():  # Modal dialog
+        if dialog.exec_():
             adjusted_box = dialog.get_adjusted_box()
             self.segment_image(*adjusted_box)
+
 
     def mousePressEvent(self, event):
         if self.drawornot:
@@ -333,30 +338,128 @@ def linear_convert(img):
     converted_img = convert_scale*img-(convert_scale*np.min(img))
     return converted_img
 
+
 class BoundingBoxDialog(QDialog):
     def __init__(self, parent, xmin, ymin, xmax, ymax):
         super().__init__(parent)
         self.setWindowTitle("Adjust Bounding Box")
-        layout = QGridLayout(self)
+        self.setGeometry(100, 100, 800, 600)  # Adjust size as needed
 
-        # Labels and spin boxes for coordinates
-        labels = ["X Min:", "Y Min:", "X Max:", "Y Max:"]
-        self.spins = []
-        for i, label in enumerate(labels):
-            layout.addWidget(QLabel(label), i, 0)
-            spin = QSpinBox(self)
-            spin.setRange(0, parent.image.shape[1] if i % 2 == 0 else parent.image.shape[0])
-            spin.setValue([xmin, ymin, xmax, ymax][i])
-            self.spins.append(spin)
-            layout.addWidget(spin, i, 1)
+        layout = QVBoxLayout(self)
+        self.view = QGraphicsView(self)
+        self.scene = QGraphicsScene(self)
+        self.view.setScene(self.scene)
+        layout.addWidget(self.view)
 
-        # Confirm button
+        # Load and display the full image
+        img = parent.originalImage
+        if img.ndim == 2:
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)  # Convert grayscale to RGB if necessary
+        qimg = QImage(img.data, img.shape[1], img.shape[0], img.strides[0], QImage.Format_RGB888).rgbSwapped()
+        pixmap = QPixmap.fromImage(qimg)
+        self.scene.addPixmap(pixmap)
+
+        # Initialize the resizable rectangle
+        self.rect = QRectF(xmin, ymin, xmax - xmin, ymax - ymin)
+        self.graphics_rect = ResizableRectItem(self.rect)
+        self.scene.addItem(self.graphics_rect)
+
+
+         # Zoom buttons
+        self.zoomInButton = QPushButton("Zoom In", self)
+        self.zoomOutButton = QPushButton("Zoom Out", self)
+        layout.addWidget(self.zoomInButton)
+        layout.addWidget(self.zoomOutButton)
+
+        self.zoomInButton.clicked.connect(lambda: self.adjustZoom(1.25))
+        self.zoomOutButton.clicked.connect(lambda: self.adjustZoom(0.8))
+
         confirm_button = QPushButton("Confirm", self)
         confirm_button.clicked.connect(self.accept)
-        layout.addWidget(confirm_button, 4, 0, 1, 2)
+        layout.addWidget(confirm_button)
 
-    def get_adjusted_box(self):
-        return [spin.value() for spin in self.spins]
+    def adjustZoom(self, factor):
+        self.view.scale(factor, factor)
 
     def accept(self):
         super().accept()
+
+    def get_adjusted_box(self):
+        new_rect = self.graphics_rect.rect()
+        return int(new_rect.x()), int(new_rect.y()), int(new_rect.width() + new_rect.x()), int(new_rect.height() + new_rect.y())
+
+
+class ResizableRectItem(QGraphicsRectItem):
+    def __init__(self, rect, parent=None):
+        super().__init__(rect, parent)
+        self.handles = {}
+        self.handleSize = 2  # Size of the square handles
+        self.updateHandlesPositions()
+        self.setFlag(QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
+        self.setAcceptHoverEvents(True)
+
+    def handleAt(self, point):
+        for handle, rect in self.handles.items():
+            if rect.contains(point):
+                return handle
+        return None
+
+    def updateHandlesPositions(self):
+        s = self.handleSize
+        rect = self.rect()
+        self.handles['topLeft'] = QRectF(rect.topLeft(), rect.topLeft() + QPointF(s, s))
+        self.handles['topRight'] = QRectF(rect.topRight() + QPointF(-s, 0), rect.topRight() + QPointF(0, s))
+        self.handles['bottomLeft'] = QRectF(rect.bottomLeft() + QPointF(0, -s), rect.bottomLeft() + QPointF(s, 0))
+        self.handles['bottomRight'] = QRectF(rect.bottomRight() - QPointF(s, s), rect.bottomRight())
+        self.handles['top'] = QRectF(rect.topLeft() + QPointF(s, 0), rect.topRight() + QPointF(-s, s))
+        self.handles['bottom'] = QRectF(rect.bottomLeft() + QPointF(s, -s), rect.bottomRight() + QPointF(-s, 0))
+        self.handles['left'] = QRectF(rect.topLeft() + QPointF(0, s), rect.bottomLeft() + QPointF(s, -s))
+        self.handles['right'] = QRectF(rect.topRight() + QPointF(-s, s), rect.bottomRight() + QPointF(0, -s))
+
+    def paint(self, painter, option, widget=None):
+        super().paint(painter, option, widget)
+        painter.setBrush(QBrush(Qt.red))
+        for rect in self.handles.values():
+            painter.drawRect(rect)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton:
+            self.currentHandle = self.handleAt(event.pos())
+            self.interactiveResize = self.currentHandle is not None
+            if self.interactiveResize:
+                event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self.interactiveResize:
+            self.resizeItem(event.pos())
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self.interactiveResize = False
+        self.currentHandle = None
+
+    def resizeItem(self, pos):
+        rect = self.rect()
+        if 'topLeft' == self.currentHandle:
+            rect.setTopLeft(pos)
+        elif 'topRight' == self.currentHandle:
+            rect.setTopRight(pos)
+        elif 'bottomLeft' == self.currentHandle:
+            rect.setBottomLeft(pos)
+        elif 'bottomRight' == self.currentHandle:
+            rect.setBottomRight(pos)
+        elif 'top' == self.currentHandle:
+            rect.setTop(pos.y())
+        elif 'bottom' == self.currentHandle:
+            rect.setBottom(pos.y())
+        elif 'left' == self.currentHandle:
+            rect.setLeft(pos.x())
+        elif 'right' == self.currentHandle:
+            rect.setRight(pos.x())
+        self.setRect(rect)
+        self.updateHandlesPositions()
