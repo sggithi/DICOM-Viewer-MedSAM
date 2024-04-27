@@ -389,13 +389,13 @@ class BoundingBoxDialog(QDialog):
         return int(new_rect.x()), int(new_rect.y()), int(new_rect.width() + new_rect.x()), int(new_rect.height() + new_rect.y())
 
 
+
 class ResizableRectItem(QGraphicsRectItem):
     def __init__(self, rect, parent=None):
         super().__init__(rect, parent)
         self.handles = {}
         self.handleSize = 2  # Size of the square handles
         self.updateHandlesPositions()
-        self.setFlag(QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setAcceptHoverEvents(True)
 
@@ -424,12 +424,13 @@ class ResizableRectItem(QGraphicsRectItem):
             painter.drawRect(rect)
 
     def mousePressEvent(self, event):
-        super().mousePressEvent(event)
         if event.button() == Qt.LeftButton:
             self.currentHandle = self.handleAt(event.pos())
             self.interactiveResize = self.currentHandle is not None
             if self.interactiveResize:
                 event.accept()
+            else:
+                super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if self.interactiveResize:
@@ -439,9 +440,13 @@ class ResizableRectItem(QGraphicsRectItem):
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        super().mouseReleaseEvent(event)
-        self.interactiveResize = False
-        self.currentHandle = None
+        if self.interactiveResize:
+            self.interactiveResize = False
+            self.currentHandle = None
+            self.updateHandlesPositions()
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
 
     def resizeItem(self, pos):
         rect = self.rect()
