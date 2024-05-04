@@ -6,9 +6,7 @@ from skimage import measure
 import glob
 
 def load_dcm_info(path, private):
-    # 取第一個slice就好
     slice_for_info = pydicom.read_file(path + '/' + os.listdir(path)[0], force=True)
-
 
     if private:
         name = ('Patient Name', 'Private')
@@ -68,13 +66,15 @@ def load_scan(path):
     for s in slices:
         s.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
     slices.sort(key=lambda x: int(x.InstanceNumber))
-    # thickness在dicom裡面是空白value，算一下給它值（兩個slice間的z差值）
+
     try:
         slice_thickness = np.abs(slices[0].ImagePositionPatient[2] - slices[1].ImagePositionPatient[2])
     except Exception:
         slice_thickness = np.abs(slices[0].SliceLocation - slices[1].SliceLocation)
     for s in slices:
         s.SliceThickness = slice_thickness
+    
+
 
     # orientation = slices[0].ImageOrientationPatient
     # print(orientation)
@@ -91,7 +91,6 @@ def get_pixels_hu(scans):
 
     # Set outside-of-scan pixels to 1
     # The intercept is usually -1024, so air is approximately 0
-    # 在影像中非人體部位（周遭空氣等）被拍到的地方數值會是-2000，把那些設為0
     image[image == -2000] = 0
 
     # Convert to Hounsfield units (HU)
@@ -124,10 +123,8 @@ def resample(image, scan):
 
 def make_mesh(image, threshold=-300, step_size=10):
     print('Transposing surface')
-    # 不同的transpose，圖的方位不一樣，遵循convention以(2,1,0)做
     p = image.transpose(2, 1, 0)
     print('Calculating surface')
-    # verts是所有頂點，faces是所有三角形列表
     verts, faces, norm, val = measure.marching_cubes(p, threshold, spacing=(1, 1, 1),
                                                              gradient_direction='descent', step_size=step_size,
                                                              allow_degenerate=True)

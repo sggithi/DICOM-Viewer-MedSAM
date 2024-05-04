@@ -35,22 +35,7 @@ class CthreeD(QDialog):
         self.coronal_hSlider.valueChanged.connect(self.updateimg)
         self.coronal_vSlider.valueChanged.connect(self.updateimg)
         self.colormap = None
-        # 這樣可以把"被activate"的Item轉成str傳入connect的function（也可以用int之類的，會被enum）
-        # self.colormapBox.activated[str].connect(self.colormap_choice)
-        # self.colormapDict = {'GRAY': None,
-        #                      'AUTUMN': cv2.COLORMAP_AUTUMN,
-        #                      'BONE': cv2.COLORMAP_BONE,
-        #                      'COOL': cv2.COLORMAP_COOL,
-        #                      'HOT': cv2.COLORMAP_HOT,
-        #                      'HSV': cv2.COLORMAP_HSV,
-        #                      'JET': cv2.COLORMAP_JET,
-        #                      'OCEAN': cv2.COLORMAP_OCEAN,
-        #                      'PINK': cv2.COLORMAP_PINK,
-        #                      'RAINBOW': cv2.COLORMAP_RAINBOW,
-        #                      'SPRING': cv2.COLORMAP_SPRING,
-        #                      'SUMMER': cv2.COLORMAP_SUMMER,
-        #                      'WINTER': cv2.COLORMAP_WINTER
-        #                      }
+
         self.volButton.clicked.connect(self.open_3dview)
 
         self.w, self.h = self.imgLabel_1.width(), self.imgLabel_1.height()
@@ -58,6 +43,10 @@ class CthreeD(QDialog):
         self.imgLabel_1.type = 'axial'
         self.imgLabel_2.type = 'sagittal'
         self.imgLabel_3.type = 'coronal'
+
+        self.imgLabel_2.updateNeeded.connect(self.updateimg)
+        self.imgLabel_1.updateNeeded.connect(self.updateimg)
+        self.imgLabel_3.updateNeeded.connect(self.updateimg)
 
         self.axialGrid.setSpacing(0)
         self.saggitalGrid.setSpacing(0)
@@ -98,6 +87,9 @@ class CthreeD(QDialog):
         self.loadnpyButton.clicked.connect(self.load_npy_clicked)
         self.downscaled = 2
         self.dsampleButton.clicked.connect(self.downsample)
+
+        # for MedSAM 3D
+        self.box_coordinates = [] # shared by sagital, axial, coronal
 
 
     def UiComponents(self): 
@@ -277,6 +269,10 @@ class CthreeD(QDialog):
     def dicom_clicked(self):
         dname = QFileDialog.getExistingDirectory(self, 'choose dicom directory')
         print(dname)
+        self.imgLabel_1.dname = dname
+        self.imgLabel_2.dname = dname
+        self.imgLabel_3.dname = dname
+        
         self.load_dicomfile(dname)
 
     def load_dicomfile(self, dname):
@@ -286,11 +282,14 @@ class CthreeD(QDialog):
         self.voxel = self.linear_convert(imgs)
         self.processedvoxel = self.voxel.copy()
 
+        print("size", self.processedvoxel.shape)
+
         self.update_shape()
 
         self.imgLabel_1.setMouseTracking(True)
         self.imgLabel_2.setMouseTracking(True)
         self.imgLabel_3.setMouseTracking(True)
+        
 
         self.updateimg()
         self.set_directory()
@@ -360,7 +359,38 @@ class CthreeD(QDialog):
         self.imgLabel_1.display_image(1)
         self.imgLabel_2.display_image(1)
         self.imgLabel_3.display_image(1)
+        
+        print("update...")
+        
+        if self.imgLabel_1.box_origin != None:
+            self.imgLabel_2.pos_xyz_start = self.imgLabel_1.pos_xyz_start
+            self.imgLabel_3.pos_xyz_start = self.imgLabel_1.pos_xyz_start
+            self.imgLabel_2.pos_xyz_end = self.imgLabel_1.pos_xyz_end
+            self.imgLabel_3.pos_xyz_end = self.imgLabel_1.pos_xyz_end
+            self.imgLabel_1.draw = 1
+            self.imgLabel_2.draw = 1
+            self.imgLabel_3.draw = 1
+            self.imgLabel_1.box_origin = None
 
+        elif self.imgLabel_2.box_origin != None:
+            self.imgLabel_1.pos_xyz_start = self.imgLabel_2.pos_xyz_start
+            self.imgLabel_3.pos_xyz_start = self.imgLabel_2.pos_xyz_start
+            self.imgLabel_1.pos_xyz_end = self.imgLabel_2.pos_xyz_end
+            self.imgLabel_3.pos_xyz_end = self.imgLabel_2.pos_xyz_end
+            self.imgLabel_2.box_origin = None  
+            self.imgLabel_1.draw = 1
+            self.imgLabel_2.draw = 1
+            self.imgLabel_3.draw = 1
+
+        elif self.imgLabel_3.box_origin != None:
+            self.imgLabel_1.pos_xyz_start = self.imgLabel_3.pos_xyz_start
+            self.imgLabel_2.pos_xyz_start = self.imgLabel_3.pos_xyz_start
+            self.imgLabel_1.pos_xyz_end = self.imgLabel_3.pos_xyz_end
+            self.imgLabel_2.pos_xyz_end = self.imgLabel_3.pos_xyz_end
+            self.imgLabel_3.box_origin = None    
+            self.imgLabel_1.draw = 1
+            self.imgLabel_2.draw = 1
+            self.imgLabel_3.draw = 1
         # Update the WW and WL label
         self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
 
