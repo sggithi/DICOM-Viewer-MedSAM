@@ -40,6 +40,7 @@ class QPaintLabel3(QLabel):
 
         self.toggleBoundingBoxEnabled = False
         self.toggleSlicerEnabled = False
+        self.bounding_box = None
 
         self.pen_color = Qt.red  # Default pen color
         self.crosshairDrawingNeeded.connect(self.update)
@@ -69,6 +70,8 @@ class QPaintLabel3(QLabel):
         if event.button() == Qt.LeftButton:
             self.drag_end = event.pos()
             if self.parentReference.toggleBoundingBoxEnabled:
+                # Store the bounding box coordinates
+                self.bounding_box = QRect(self.drag_start, self.drag_end).normalized()
                 # Print the bounding box coordinates
                 print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
             self.update()
@@ -156,9 +159,11 @@ class QPaintLabel3(QLabel):
                 self.crosshairDrawingNeeded.emit()
         # Draw the bounding box if it's enabled
         if self.parentReference.toggleBoundingBoxEnabled and self.drag_start and self.drag_end:
-            painter.setPen(QPen(Qt.red, 3))
             rect = QRect(self.drag_start, self.drag_end).normalized()
             painter.drawRect(rect)
+        if self.parentReference.toggleBoundingBoxEnabled and self.bounding_box is not None:
+                painter.setPen(QPen(Qt.red, 3))
+                painter.drawRect(self.bounding_box)
 
             
 
