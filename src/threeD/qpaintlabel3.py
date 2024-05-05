@@ -100,8 +100,8 @@ class QPaintLabel3(QLabel):
             self.draw = 1
             self.update()
             
-            # self.drag_start = None
-            # self.drag_end = None
+            self.drag_start = None
+            self.drag_end = None
 
     def leaveEvent(self, event):
         self.slice_loc = self.slice_loc_restore
@@ -187,15 +187,15 @@ class QPaintLabel3(QLabel):
             painter.setPen(QPen(Qt.red, 3))
             rect = QRect(self.drag_start, self.drag_end).normalized()
             painter.drawRect(rect)
-            
+
         if self.parentReference.toggleBoundingBoxEnabled and self.draw == 1:
             print(self.box_origin, "origin")
-            if self.type == self.box_origin:
-                painter.setPen(QPen(Qt.red, 3))
-                rect = QRect(self.drag_start, self.drag_end).normalized()
-                self.draw = 0
-                painter.drawRect(rect)
-            elif self.type == 'axial':
+            # if self.type == self.box_origin:
+            #     painter.setPen(QPen(Qt.red, 3))
+            #     rect = QRect(self.drag_start, self.drag_end).normalized()
+            #     self.draw = 0
+            #     painter.drawRect(rect)
+            if self.type == 'axial':
                 painter.setPen(QPen(Qt.red, 3))
                 rect = QRect(QPoint(self.pos_xyz_start[0],self.pos_xyz_start[1]), QPoint(self.pos_xyz_end[0],self.pos_xyz_end[1])).normalized()
                 painter.drawRect(rect)
