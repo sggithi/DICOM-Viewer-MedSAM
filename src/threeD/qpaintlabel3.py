@@ -183,11 +183,11 @@ class QPaintLabel3(QLabel):
 
                 self.crosshairDrawingNeeded.emit()
         # Draw the bounding box if it's enabled
-        # if self.parentReference.toggleBoundingBoxEnabled and self.drag_start and self.drag_end:
-        #     painter.setPen(QPen(Qt.red, 3))
-        #     rect = QRect(self.drag_start, self.drag_end).normalized()
-        #     painter.drawRect(rect)
-        # elif:
+        if self.parentReference.toggleBoundingBoxEnabled and self.drag_start and self.drag_end:
+            painter.setPen(QPen(Qt.red, 3))
+            rect = QRect(self.drag_start, self.drag_end).normalized()
+            painter.drawRect(rect)
+            
         if self.parentReference.toggleBoundingBoxEnabled and self.draw == 1:
             print(self.box_origin, "origin")
             if self.type == self.box_origin:
