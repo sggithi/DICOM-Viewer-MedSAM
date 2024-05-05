@@ -53,6 +53,8 @@ class QPaintLabel3(QLabel):
         self.box_origin = None
         self.draw = 0
 
+        self.bounding_box = None
+
 
 
 
@@ -94,6 +96,8 @@ class QPaintLabel3(QLabel):
                     self.pos_xyz_start = [self.drag_start.x(), 0, self.drag_start.y()]
                     self.pos_xyz_end = [self.drag_end.x(), 0, self.drag_end.y()]
                 self.updateNeeded.emit()
+                # Store the bounding box coordinates
+                self.bounding_box = QRect(self.drag_start, self.drag_end).normalized()
 
             
             print(self.type, np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
@@ -184,9 +188,11 @@ class QPaintLabel3(QLabel):
                 self.crosshairDrawingNeeded.emit()
         # Draw the bounding box if it's enabled
         if self.parentReference.toggleBoundingBoxEnabled and self.drag_start and self.drag_end:
-            painter.setPen(QPen(Qt.red, 3))
             rect = QRect(self.drag_start, self.drag_end).normalized()
             painter.drawRect(rect)
+        if self.parentReference.toggleBoundingBoxEnabled and self.bounding_box is not None:
+                painter.setPen(QPen(Qt.red, 3))
+                painter.drawRect(self.bounding_box)
 
         if self.parentReference.toggleBoundingBoxEnabled and self.draw == 1:
             print(self.box_origin, "origin")
