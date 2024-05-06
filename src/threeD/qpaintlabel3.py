@@ -83,17 +83,17 @@ class QPaintLabel3(QLabel):
                 # print(self.type, "type")
                 if self.type == 'axial':
                     self.box_origin = 'axial'
-                    self.pos_xyz_start = [self.drag_start.x(), self.drag_start.y(), 0]
+                    self.pos_xyz_start = [self.drag_start.x(), self.drag_start.y(), 511]
                     self.pos_xyz_end = [self.drag_end.x(), self.drag_end.y(), 0]
                 
                 elif self.type == 'sagittal':
                     self.box_origin = 'sagittal'
-                    self.pos_xyz_start = [0, self.drag_start.y(), self.drag_start.x()]
-                    self.pos_xyz_end = [ self.drag_end.y(),self.drag_end.x(), 0]
+                    self.pos_xyz_start = [511, self.drag_start.x(), self.drag_start.y()]
+                    self.pos_xyz_end = [0, self.drag_end.x(),self.drag_end.y()]
                
                 elif self.type == 'coronal':
                     self.box_origin = 'coronal'
-                    self.pos_xyz_start = [self.drag_start.x(), 0, self.drag_start.y()]
+                    self.pos_xyz_start = [self.drag_start.x(), 511, self.drag_start.y()]
                     self.pos_xyz_end = [self.drag_end.x(), 0, self.drag_end.y()]
                 self.updateNeeded.emit()
                 # Store the bounding box coordinates
@@ -195,7 +195,6 @@ class QPaintLabel3(QLabel):
                 painter.drawRect(self.bounding_box)
 
         if self.parentReference.toggleBoundingBoxEnabled and self.draw == 1:
-            print(self.box_origin, "origin")
             # if self.type == self.box_origin:
             #     painter.setPen(QPen(Qt.red, 3))
             #     rect = QRect(self.drag_start, self.drag_end).normalized()
@@ -208,7 +207,7 @@ class QPaintLabel3(QLabel):
                 self.draw = 0
             elif self.type == 'sagittal':
                 painter.setPen(QPen(Qt.red, 3))
-                rect = QRect(QPoint(self.pos_xyz_start[2],self.pos_xyz_start[1]), QPoint(self.pos_xyz_end[2],self.pos_xyz_end[1])).normalized()
+                rect = QRect(QPoint(self.pos_xyz_start[1],self.pos_xyz_start[2]), QPoint(self.pos_xyz_end[1],self.pos_xyz_end[2])).normalized()
                 painter.drawRect(rect)
                 self.draw = 0
             elif self.type == 'coronal':

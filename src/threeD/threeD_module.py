@@ -90,6 +90,9 @@ class CthreeD(QDialog):
 
         # for MedSAM 3D
         self.box_coordinates = [] # shared by sagital, axial, coronal
+        self.imgLabel_1.setFixedSize(512, 512)
+        self.imgLabel_2.setFixedSize(512, 512)
+        self.imgLabel_3.setFixedSize(512, 512)
 
 
     def UiComponents(self): 
@@ -360,7 +363,6 @@ class CthreeD(QDialog):
         self.imgLabel_2.display_image(1)
         self.imgLabel_3.display_image(1)
         
-        print("update...")
         
         if self.imgLabel_1.box_origin != None:
             self.imgLabel_2.pos_xyz_start = self.imgLabel_1.pos_xyz_start
