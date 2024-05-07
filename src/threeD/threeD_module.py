@@ -44,8 +44,8 @@ class CthreeD(QDialog):
         self.imgLabel_2.type = 'sagittal'
         self.imgLabel_3.type = 'coronal'
 
-        self.imgLabel_2.updateNeeded.connect(self.updateimg)
         self.imgLabel_1.updateNeeded.connect(self.updateimg)
+        self.imgLabel_2.updateNeeded.connect(self.updateimg)
         self.imgLabel_3.updateNeeded.connect(self.updateimg)
 
         self.axialGrid.setSpacing(0)
@@ -76,17 +76,9 @@ class CthreeD(QDialog):
         self.colormap_hBox.insertStretch(2)
         self.colormap_hBox.insertSpacerItem(0, QSpacerItem(30, 0, QSizePolicy.Fixed,  QSizePolicy.Fixed))
 
-        self.savesliceButton.clicked.connect(self.saveslice_clicked)
         self.dcmInfo = None
-#        self.imgLabel_1.mpsignal.connect(self.cross_center_mouse)
-#        self.imgLabel_2.mpsignal.connect(self.cross_center_mouse)
-#        self.imgLabel_3.mpsignal.connect(self.cross_center_mouse)
 
         self.cross_recalc = True
-        self.savenpyButton.clicked.connect(self.save_npy_clicked)
-        self.loadnpyButton.clicked.connect(self.load_npy_clicked)
-        self.downscaled = 2
-        self.dsampleButton.clicked.connect(self.downsample)
 
         # for MedSAM 3D
         self.box_coordinates = [] # shared by sagital, axial, coronal
@@ -94,26 +86,44 @@ class CthreeD(QDialog):
         self.imgLabel_2.setFixedSize(512, 512)
         self.imgLabel_3.setFixedSize(512, 512)
 
+        # creating a push button 
+        # Bounding Box & HUWindowing
+        self.boundingBox.clicked.connect(self.toggle_bounding_box_functionality)
+        self.boundingBox.setChecked(True)
+        self.boundingBox.setStyleSheet('''
+                                         QPushButton {
+                                        background-color: #B6C2CE;
+                                        border-style: solid;
+                                        border-color: #A7B4BF;
+                                        border-width: 1px;
+                                        color: white;
+                                        text-align: center;
+                                        padding: 8px;
+                                        font: bold 12px;
+                                        min-width: 10em;
+                                        border-radius: 15px;
+                                        }
+                                        ''')
+        self.windowing.clicked.connect(self.toggle_slicer_functionality)
+        self.windowing.setChecked(False)
+
+        self.windowing.setEnabled(False)
+        self.boundingBox.setEnabled(False)
+        self.generateMask.setEnabled(False)
+
+        # Generate Button 
+        # TODO: add button function here. 
+        # self.generateMask.clicked.connect()
+
 
     def UiComponents(self): 
     
-            # creating a push button 
 
             self.windowWidth = 400  # Default window width
             self.windowLevel = 40   # Default window level
 
-            # Toggle slicer button next to the colormap selector
-            self.toggleSlicerButton = QPushButton("HU windowing", self)
-            self.toggleSlicerButton.clicked.connect(self.toggle_slicer_functionality)
-            self.colormap_hBox.insertWidget(1, self.toggleSlicerButton)
-
-            # Toggle button for bounding box
-            self.toggleBoundingBoxButton = QPushButton("Bounding Box", self)
-            self.toggleBoundingBoxButton.clicked.connect(self.toggle_bounding_box_functionality)
-            self.colormap_hBox.insertWidget(2, self.toggleBoundingBoxButton)
-
             self.toggleSlicerEnabled = False
-            self.toggleBoundingBoxEnabled = False
+            self.toggleBoundingBoxEnabled = True
 
             # This spacer will push everything to the left of it to the left, and everything to the right of it to the right
             self.colormap_hBox.addStretch(1)
@@ -124,11 +134,7 @@ class CthreeD(QDialog):
             self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
             self.wwlLabel.setStyleSheet("QLabel { margin: 5px; }")  
             self.colormap_hBox.addWidget(self.wwlLabel)
-    
-            # Initially, buttons are gray
-            self.toggleSlicerButton.setStyleSheet(" background-color : transparent; margin: 5px; padding: 5px;")
-            self.toggleBoundingBoxButton.setStyleSheet(" background-color : transparent; margin: 5px; padding: 5px;")
-            
+
     
         
     @staticmethod
@@ -139,9 +145,11 @@ class CthreeD(QDialog):
         return img_adjusted.astype(np.uint8)
 
     def toggle_slicer_functionality(self):
-        self.toggleSlicerEnabled = not self.toggleSlicerEnabled
-        self.toggleBoundingBoxButton.setChecked(not self.toggleSlicerEnabled)
-        self.toggleBoundingBoxEnabled = not self.toggleSlicerEnabled
+
+        self.boundingBox.setChecked(False)
+        self.windowing.setChecked(True)
+        self.toggleSlicerEnabled = True
+        self.toggleBoundingBoxEnabled = False
 
         if self.toggleSlicerEnabled:
             self.imgLabel_1.setMouseTracking(True)
@@ -150,8 +158,34 @@ class CthreeD(QDialog):
             self.imgLabel_1.type = 'axial'
             self.imgLabel_2.type = 'sagittal'
             self.imgLabel_3.type = 'coronal'
-            self.toggleSlicerButton.setStyleSheet("background-color : #ffd700")
-            self.toggleBoundingBoxButton.setStyleSheet("background-color : transparent")
+            self.boundingBox.setStyleSheet('''
+                                           QPushButton{
+                                            background-color: none;
+                                            border-style: solid;
+                                            border-color: #A7B4BF;
+                                            border-width: 1px;
+                                            color: #A7B4BF;
+                                            text-align: center;
+                                            padding: 8px;
+                                            font: bold 12px;
+                                            min-width: 10em;
+                                            border-radius: 15px;
+                                        }
+                                           ''')
+            self.windowing.setStyleSheet('''
+                                         QPushButton {
+                                        background-color: #B6C2CE;
+                                        border-style: solid;
+                                        border-color: #A7B4BF;
+                                        border-width: 1px;
+                                        color: white;
+                                        text-align: center;
+                                        padding: 8px;
+                                        font: bold 12px;
+                                        min-width: 10em;
+                                        border-radius: 15px;
+                                        }
+                                        ''')
         else:
             self.imgLabel_1.setMouseTracking(False)
             self.imgLabel_2.setMouseTracking(False)
@@ -159,98 +193,83 @@ class CthreeD(QDialog):
             self.imgLabel_1.type = 'axial'
             self.imgLabel_2.type = 'sagittal'
             self.imgLabel_3.type = 'coronal'
-            self.toggleSlicerButton.setStyleSheet("background-color : transparent")
         self.updateimg()
 
+        self.generateMask.setEnabled(False)
+        self.generateMask.setStyleSheet('''
+                                        QPushButton{
+                                            background-color: #D9D9D9;
+                                            border: none;
+                                            color: white;
+                                            text-align: center;
+                                            padding: 10px;
+                                            font: bold 12px;
+                                            min-width: 10em;
+                                            border-radius: 16px;
+                                        }
+                                        ''')
+
     def toggle_bounding_box_functionality(self):
-        self.toggleBoundingBoxEnabled = not self.toggleBoundingBoxEnabled
-        self.toggleSlicerButton.setChecked(not self.toggleBoundingBoxEnabled)
-        self.toggleSlicerEnabled = not self.toggleBoundingBoxEnabled
+        self.boundingBox.setChecked(True)
+        self.windowing.setChecked(False)
+        self.toggleSlicerEnabled = False
+        self.toggleBoundingBoxEnabled = True
 
         if self.toggleBoundingBoxEnabled:
             self.imgLabel_1.type = 'axial'
             self.imgLabel_2.type = 'sagittal'
             self.imgLabel_3.type = 'coronal'
-            self.toggleBoundingBoxButton.setStyleSheet("background-color : #ffd700")
-            self.toggleSlicerButton.setStyleSheet("background-color : transparent")
+            self.windowing.setStyleSheet('''
+                                           QPushButton{
+                                            background-color: none;
+                                            border-style: solid;
+                                            border-color: #A7B4BF;
+                                            border-width: 1px;
+                                            color: #A7B4BF;
+                                            text-align: center;
+                                            padding: 8px;
+                                            font: bold 12px;
+                                            min-width: 10em;
+                                            border-radius: 15px;
+                                        }
+                                           ''')
+            self.boundingBox.setStyleSheet('''
+                                         QPushButton {
+                                        background-color: #B6C2CE;
+                                        border-style: solid;
+                                        border-color: #A7B4BF;
+                                        border-width: 1px;
+                                        color: white;
+                                        text-align: center;
+                                        padding: 8px;
+                                        font: bold 12px;
+                                        min-width: 10em;
+                                        border-radius: 15px;
+                                        }
+                                        ''')
         else:
             self.imgLabel_1.type = 'axial'
             self.imgLabel_2.type = 'sagittal'
             self.imgLabel_3.type = 'coronal'
-            self.toggleBoundingBoxButton.setStyleSheet("background-color : transparent")
         self.updateimg()
 
-
-    def downsample(self):
-        self.processedvoxel = self.processedvoxel[::self.downscaled, ::self.downscaled, ::self.downscaled]
-        self.update_shape()
-        self.updateimg()
-
-    def save_npy_clicked(self):
-        fname, _filter = QFileDialog.getSaveFileName(self, 'save file', '~/untitled', "Image Files (*.npy)")
-        if fname:
-            np.save(fname, self.processedvoxel)
-        else:
-            print('Error')
-
-    def load_npy_clicked(self):
-        fname, _filter = QFileDialog.getOpenFileName(self, 'open file', '~/Desktop', "Image Files (*.NPY *.npy)")
-        self.processedvoxel = np.load(fname)
-        self.update_shape()
-        self.savetemp()
-        self.updateimg()
+        # enable generateMask Button
+        self.generateMask.setEnabled(True)
+        self.generateMask.setStyleSheet('''
+                                        QPushButton {
+                                            background-color: #013769;
+                                            border: none;
+                                            color: white;
+                                            text-align: center;
+                                            padding: 10px;
+                                            font: bold 12px;
+                                            min-width: 10em;
+                                            border-radius: 16px;
+                                        }
+                                        ''')
 
     def set_directory(self):
         os.chdir(self.directory)
-
-    # def cross_center_mouse(self, _type):
-    #     print("MOUSE CLIKCED")
-    #     self.cross_recalc = False
-    #     if _type == 'axial':
-    #         self.axial_hSlider.setValue(self.imgLabel_1.crosscenter[0] *
-    #                                     self.axial_hSlider.maximum() / self.imgLabel_1.width())
-    #         self.axial_vSlider.setValue(self.imgLabel_1.crosscenter[1] *
-    #                                     self.axial_vSlider.maximum() / self.imgLabel_1.height())
-    #     elif _type == 'sagittal':
-    #         self.sagittal_hSlider.setValue(self.imgLabel_2.crosscenter[0] *
-    #                                        self.sagittal_hSlider.maximum() / self.imgLabel_2.width())
-    #         self.sagittal_vSlider.setValue(self.imgLabel_2.crosscenter[1] *
-    #                                        self.sagittal_vSlider.maximum() / self.imgLabel_2.height())
-    #     elif _type == 'coronal':
-    #         self.coronal_hSlider.setValue(self.imgLabel_3.crosscenter[0] *
-    #                                       self.coronal_hSlider.maximum() / self.imgLabel_3.width())
-    #         self.coronal_vSlider.setValue(self.imgLabel_3.crosscenter[1] *
-    #                                       self.coronal_vSlider.maximum() / self.imgLabel_3.height())
-    #     else:
-    #         pass
-
-    #     self.imgLabel_1.crosscenter = [
-    #         self.axial_hSlider.value() * self.imgLabel_1.width() / self.axial_hSlider.maximum(),
-    #         self.axial_vSlider.value() * self.imgLabel_1.height() / self.axial_vSlider.maximum()]
-    #     self.imgLabel_2.crosscenter = [
-    #         self.sagittal_hSlider.value() * self.imgLabel_2.width() / self.sagittal_hSlider.maximum(),
-    #         self.sagittal_vSlider.value() * self.imgLabel_2.height() / self.sagittal_vSlider.maximum()]
-    #     self.imgLabel_3.crosscenter = [
-    #         self.coronal_hSlider.value() * self.imgLabel_3.width() / self.coronal_hSlider.maximum(),
-    #         self.coronal_vSlider.value() * self.imgLabel_3.height() / self.coronal_vSlider.maximum()]
-    #     self.updateimg()
-
-    #     self.cross_recalc = True
-
-    def saveslice_clicked(self):
-        fname, _filter = QFileDialog.getSaveFileName(self, 'save file', '~/untitled', "Image Files (*.jpg)")
-        if fname:
-            if self.savesliceBox.currentText() == 'Axial':
-                cv2.imwrite(fname, self.imgLabel_1.processedImage)
-            elif self.savesliceBox.currentText() == 'Saggital':
-                cv2.imwrite(fname, self.imgLabel_2.processedImage)
-            elif self.savesliceBox.currentText() == 'Coronal':
-                cv2.imwrite(fname, self.imgLabel_3.processedImage)
-            else:
-                print('No slice be chosen')
-        else:
-            print('Error')
-        pass
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -265,18 +284,17 @@ class CthreeD(QDialog):
         self.volWindow.show()
         print("called")
 
-    # def colormap_choice(self, text):
-    #     self.colormap = self.colormapDict[text]
-    #     self.updateimg()
-
     def dicom_clicked(self):
         dname = QFileDialog.getExistingDirectory(self, 'choose dicom directory')
-        print(dname)
         self.imgLabel_1.dname = dname
         self.imgLabel_2.dname = dname
         self.imgLabel_3.dname = dname
         
         self.load_dicomfile(dname)
+
+        self.windowing.setEnabled(True)
+        self.boundingBox.setEnabled(True)
+
 
     def load_dicomfile(self, dname):
         self.dcmList.clear()
@@ -292,14 +310,13 @@ class CthreeD(QDialog):
         self.imgLabel_1.setMouseTracking(True)
         self.imgLabel_2.setMouseTracking(True)
         self.imgLabel_3.setMouseTracking(True)
-        
 
         self.updateimg()
         self.set_directory()
         self.volWindow = C3dView()
         self.volWindow.imgs = imgs
         self.volWindow.patient = patient
-        self.dcmInfo = ldf.load_dcm_info(dname, self.privatecheckBox.isChecked())
+        self.dcmInfo = ldf.load_dcm_info(dname, False)
         self.updatelist()
 
     def update_shape(self):
@@ -323,6 +340,7 @@ class CthreeD(QDialog):
             self.dcmList.addItem(QListWidgetItem('%-20s\t:  %s' % (item[0], item[1])))
 
     def updateimg(self):
+
         a_loc = self.sagittal_vSlider.value()
         c_loc = self.axial_vSlider.value()
         s_loc = self.axial_hSlider.value()
