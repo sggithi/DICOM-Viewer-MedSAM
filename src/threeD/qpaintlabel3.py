@@ -4,12 +4,15 @@ from PyQt5.QtGui import *
 from PyQt5 import QtCore
 from PyQt5.QtCore import *
 import numpy as np
+from PyQt5.QtCore import pyqtSignal, Qt
+
 # from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 class QPaintLabel3(QLabel):
 
     mpsignal = pyqtSignal(str)
     crosshairDrawingNeeded = pyqtSignal()
+    updateNeeded = pyqtSignal()
 
     def __init__(self, parent):
         super(QLabel, self).__init__(parent)
@@ -22,13 +25,12 @@ class QPaintLabel3(QLabel):
         self.pos_x = 20
         self.pos_y = 20
         self.imgr, self.imgc = None, None
-        # 遇到list就停，圖上的顯示白色只是幌子
+      
         self.pos_xy = []
-        # 十字的中心點！每個QLabel指定不同中心點，這樣可以用一樣的paintevent function
         self.crosscenter = [0, 0]
         self.mouseclicked = None
         self.sliceclick = False
-        # 決定用哪種paintEvent的type, general代表一般的
+    
         self.type = 'general'
         self.slice_loc = [0, 0, 0]
         self.slice_loc_restore = [0, 0, 0]
@@ -43,6 +45,17 @@ class QPaintLabel3(QLabel):
 
         self.pen_color = Qt.red  # Default pen color
         self.crosshairDrawingNeeded.connect(self.update)
+
+        ## for MedSAM
+        self.dname = None
+        self.pos_xyz_start = [] # shared by axial, sagital, cornoal
+        self.pos_xyz_end = []
+        self.box_origin = None
+        self.draw = 0
+
+        self.bounding_box = None
+
+
 
 
     def mouseMoveEvent(self, event: QMouseEvent):
@@ -62,16 +75,35 @@ class QPaintLabel3(QLabel):
             self.parent().updateimg()
             self.drag_start = self.drag_end
 
-
-
-
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.drag_end = event.pos()
-            if self.parentReference.toggleBoundingBoxEnabled:
+            if self.parentReference.toggleBoundingBoxEnabled :
                 # Print the bounding box coordinates
-                print(np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
+                # print(self.type, "type")
+                if self.type == 'axial':
+                    self.box_origin = 'axial'
+                    self.pos_xyz_start = [self.drag_start.x(), self.drag_start.y(), 511]
+                    self.pos_xyz_end = [self.drag_end.x(), self.drag_end.y(), 0]
+                
+                elif self.type == 'sagittal':
+                    self.box_origin = 'sagittal'
+                    self.pos_xyz_start = [511, self.drag_start.x(), self.drag_start.y()]
+                    self.pos_xyz_end = [0, self.drag_end.x(),self.drag_end.y()]
+               
+                elif self.type == 'coronal':
+                    self.box_origin = 'coronal'
+                    self.pos_xyz_start = [self.drag_start.x(), 511, self.drag_start.y()]
+                    self.pos_xyz_end = [self.drag_end.x(), 0, self.drag_end.y()]
+                self.updateNeeded.emit()
+                # Store the bounding box coordinates
+                self.bounding_box = QRect(self.drag_start, self.drag_end).normalized()
+
+            
+            print(self.type, np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
+            self.draw = 1
             self.update()
+            
             self.drag_start = None
             self.drag_end = None
 
@@ -156,9 +188,36 @@ class QPaintLabel3(QLabel):
                 self.crosshairDrawingNeeded.emit()
         # Draw the bounding box if it's enabled
         if self.parentReference.toggleBoundingBoxEnabled and self.drag_start and self.drag_end:
-            painter.setPen(QPen(Qt.red, 3))
             rect = QRect(self.drag_start, self.drag_end).normalized()
             painter.drawRect(rect)
+        if self.parentReference.toggleBoundingBoxEnabled and self.bounding_box is not None:
+                painter.setPen(QPen(Qt.red, 3))
+                painter.drawRect(self.bounding_box)
+
+        if self.parentReference.toggleBoundingBoxEnabled and self.draw == 1:
+            # if self.type == self.box_origin:
+            #     painter.setPen(QPen(Qt.red, 3))
+            #     rect = QRect(self.drag_start, self.drag_end).normalized()
+            #     self.draw = 0
+            #     painter.drawRect(rect)
+            if self.type == 'axial':
+                painter.setPen(QPen(Qt.red, 3))
+                rect = QRect(QPoint(self.pos_xyz_start[0],self.pos_xyz_start[1]), QPoint(self.pos_xyz_end[0],self.pos_xyz_end[1])).normalized()
+                painter.drawRect(rect)
+                self.draw = 0
+            elif self.type == 'sagittal':
+                painter.setPen(QPen(Qt.red, 3))
+                rect = QRect(QPoint(self.pos_xyz_start[1],self.pos_xyz_start[2]), QPoint(self.pos_xyz_end[1],self.pos_xyz_end[2])).normalized()
+                painter.drawRect(rect)
+                self.draw = 0
+            elif self.type == 'coronal':
+                painter.setPen(QPen(Qt.red, 3))
+                self.draw = 0
+                rect = QRect(QPoint(self.pos_xyz_start[0],self.pos_xyz_start[2]), QPoint(self.pos_xyz_end[0],self.pos_xyz_end[2])).normalized()
+                painter.drawRect(rect)      
+
+
+                
 
             
 
