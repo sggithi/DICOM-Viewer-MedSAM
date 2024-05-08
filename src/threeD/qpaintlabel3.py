@@ -151,41 +151,41 @@ class QPaintLabel3(QLabel):
             painter = QPainter(self)
             painter.drawPixmap(self.rect(), pixmap)
 
-            # Draw the cross-hair lines
-            if self.type == 'axial':
-                # Draw vertical line
-                painter.setPen(QPen(Qt.red, 3))
-                painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
-                # Draw horizontal line
-                painter.setPen(QPen(Qt.cyan, 3))
-                painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
-                # Draw center point
-                painter.setPen(QPen(Qt.yellow, 3))
-                painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
-            elif self.type == 'sagittal':
-                # Draw vertical line
-                painter.setPen(QPen(Qt.cyan, 3))
-                painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
-                # Draw horizontal line
-                painter.setPen(QPen(Qt.yellow, 3))
-                painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
-                # Draw center point
-                painter.setPen(QPen(Qt.red, 3))
-                painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
-            elif self.type == 'coronal':
-                # Draw vertical line
-                painter.setPen(QPen(Qt.red, 3))
-                painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
-                # Draw horizontal line
-                painter.setPen(QPen(Qt.yellow, 3))
-                painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
-                # Draw center point
-                painter.setPen(QPen(Qt.cyan, 3))
-                painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
-            else:
-                pass
+            # # Draw the cross-hair lines
+            # if self.type == 'axial':
+            #     # Draw vertical line
+            #     painter.setPen(QPen(Qt.red, 3))
+            #     painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
+            #     # Draw horizontal line
+            #     painter.setPen(QPen(Qt.cyan, 3))
+            #     painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
+            #     # Draw center point
+            #     painter.setPen(QPen(Qt.yellow, 3))
+            #     painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
+            # elif self.type == 'sagittal':
+            #     # Draw vertical line
+            #     painter.setPen(QPen(Qt.cyan, 3))
+            #     painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
+            #     # Draw horizontal line
+            #     painter.setPen(QPen(Qt.yellow, 3))
+            #     painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
+            #     # Draw center point
+            #     painter.setPen(QPen(Qt.red, 3))
+            #     painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
+            # elif self.type == 'coronal':
+            #     # Draw vertical line
+            #     painter.setPen(QPen(Qt.red, 3))
+            #     painter.drawLine(self.crosscenter[0], 0, self.crosscenter[0], self.height())
+            #     # Draw horizontal line
+            #     painter.setPen(QPen(Qt.yellow, 3))
+            #     painter.drawLine(0, self.crosscenter[1], self.width(), self.crosscenter[1])
+            #     # Draw center point
+            #     painter.setPen(QPen(Qt.cyan, 3))
+            #     painter.drawPoint(self.crosscenter[0], self.crosscenter[1])
+            # else:
+            #     pass
 
-                self.crosshairDrawingNeeded.emit()
+            #     self.crosshairDrawingNeeded.emit()
         # Draw the bounding box if it's enabled
         if self.parentReference.toggleBoundingBoxEnabled and self.drag_start and self.drag_end:
             rect = QRect(self.drag_start, self.drag_end).normalized()
