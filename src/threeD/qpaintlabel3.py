@@ -13,6 +13,7 @@ class QPaintLabel3(QLabel):
     mpsignal = pyqtSignal(str)
     crosshairDrawingNeeded = pyqtSignal()
     updateNeeded = pyqtSignal()
+    bounding_box_resized = pyqtSignal(QRectF)
 
     def __init__(self, parent):
         super(QLabel, self).__init__(parent)
@@ -54,7 +55,15 @@ class QPaintLabel3(QLabel):
         self.draw = 0
 
         self.bounding_box = None
-
+        
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.LeftButton:
+            if self.bounding_box is None or not self.bounding_box.handleAt(event.pos()):
+                self.drag_start = event.pos()
+                self.drag_end = event.pos()
+            if self.bounding_box is not None:
+                self.bounding_box.mousePressEvent(event)
+            self.update()
 
 
 
@@ -63,8 +72,12 @@ class QPaintLabel3(QLabel):
         
         # MARK: BoundingBox
         # Update the drag_end position for both bounding box and slicer functionality
-        self.drag_end = event.pos()
-        self.update()
+        if self.parentReference.toggleBoundingBoxEnabled and event.buttons() & Qt.LeftButton:
+            if self.bounding_box is not None and self.bounding_box.interactiveResize:
+                self.bounding_box.mouseMoveEvent(event)
+            else:
+                self.drag_end = event.pos()
+            self.update()
 
         if self.parentReference.toggleSlicerEnabled and event.buttons() & Qt.LeftButton:
             # Adjust WW and WL for slicer functionality
@@ -75,48 +88,61 @@ class QPaintLabel3(QLabel):
             self.parent().updateimg()
             self.drag_start = self.drag_end
 
+
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.drag_end = event.pos()
-            if self.parentReference.toggleBoundingBoxEnabled :
-                # Print the bounding box coordinates
-                # print(self.type, "type")
-                if self.type == 'axial':
-                    self.box_origin = 'axial'
-                    self.pos_xyz_start = [self.drag_start.x(), self.drag_start.y(), 511]
-                    self.pos_xyz_end = [self.drag_end.x(), self.drag_end.y(), 0]
-                
-                elif self.type == 'sagittal':
-                    self.box_origin = 'sagittal'
-                    self.pos_xyz_start = [511, self.drag_start.x(), self.drag_start.y()]
-                    self.pos_xyz_end = [0, self.drag_end.x(),self.drag_end.y()]
-               
-                elif self.type == 'coronal':
-                    self.box_origin = 'coronal'
-                    self.pos_xyz_start = [self.drag_start.x(), 511, self.drag_start.y()]
-                    self.pos_xyz_end = [self.drag_end.x(), 0, self.drag_end.y()]
-                self.updateNeeded.emit()
-                # Store the bounding box coordinates
-                self.bounding_box = QRect(self.drag_start, self.drag_end).normalized()
+            if self.parentReference.toggleBoundingBoxEnabled:
+                if self.bounding_box is None or not self.bounding_box.interactiveResize:
+                    rect = QRectF(self.drag_start, self.drag_end).normalized()
+                    self.bounding_box = ResizableRectItem(rect)
+                    self.bounding_box.rectResized.connect(self.handle_bounding_box_resized)
 
-            
-            print(self.type, np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
-            self.draw = 1
-            self.update()
-            
-            self.drag_start = None
-            self.drag_end = None
+                    # Create ResizableRectItem instances for the other planes
+                    if self.type == 'axial':
+                        sagittal_rect = self.parentReference.map_rect_to_plane(rect, 'axial', 'sagittal')
+                        coronal_rect = self.parentReference.map_rect_to_plane(rect, 'axial', 'coronal')
+                        self.parentReference.imgLabel_2.bounding_box = ResizableRectItem(sagittal_rect)
+                        self.parentReference.imgLabel_3.bounding_box = ResizableRectItem(coronal_rect)
+                    elif self.type == 'sagittal':
+                        axial_rect = self.parentReference.map_rect_to_plane(rect, 'sagittal', 'axial')
+                        coronal_rect = self.parentReference.map_rect_to_plane(rect, 'sagittal', 'coronal')
+                        self.parentReference.imgLabel_1.bounding_box = ResizableRectItem(axial_rect)
+                        self.parentReference.imgLabel_3.bounding_box = ResizableRectItem(coronal_rect)
+                    elif self.type == 'coronal':
+                        axial_rect = self.parentReference.map_rect_to_plane(rect, 'coronal', 'axial')
+                        sagittal_rect = self.parentReference.map_rect_to_plane(rect, 'coronal', 'sagittal')
+                        self.parentReference.imgLabel_1.bounding_box = ResizableRectItem(axial_rect)
+                        self.parentReference.imgLabel_2.bounding_box = ResizableRectItem(sagittal_rect)
+
+                    self.parentReference.imgLabel_1.bounding_box.rectResized.connect(self.parentReference.update_bounding_boxes)
+                    self.parentReference.imgLabel_2.bounding_box.rectResized.connect(self.parentReference.update_bounding_boxes)
+                    self.parentReference.imgLabel_3.bounding_box.rectResized.connect(self.parentReference.update_bounding_boxes)
+                    
+                    # Update the other planes immediately
+                    self.parentReference.imgLabel_1.update()
+                    self.parentReference.imgLabel_2.update()
+                    self.parentReference.imgLabel_3.update()
+                
+                else:
+                    self.bounding_box.mouseReleaseEvent(event)
+                self.update()
+
+                #print(self.type, np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
+                self.draw = 1
+                
+                self.drag_start = None
+                self.drag_end = None
+
+    def handle_bounding_box_resized(self, rect):
+        self.bounding_box_resized.emit(rect) # Emit the signal with the updated rectangle
+
 
     def leaveEvent(self, event):
         self.slice_loc = self.slice_loc_restore
         
         self.update()
         
-    def mousePressEvent(self, event: QMouseEvent):
-        if event.button() == Qt.LeftButton:
-            self.drag_start = event.pos()
-            self.drag_end = event.pos()
-            self.update()
 
     def display_image(self, window=1):
         self.imgr, self.imgc = self.processedImage.shape[0:2]
@@ -187,41 +213,87 @@ class QPaintLabel3(QLabel):
 
             #     self.crosshairDrawingNeeded.emit()
         # Draw the bounding box if it's enabled
-        if self.parentReference.toggleBoundingBoxEnabled and self.drag_start and self.drag_end:
-            rect = QRect(self.drag_start, self.drag_end).normalized()
-            painter.drawRect(rect)
         if self.parentReference.toggleBoundingBoxEnabled and self.bounding_box is not None:
-                painter.setPen(QPen(Qt.red, 3))
-                painter.drawRect(self.bounding_box)
+            painter.setPen(QPen(Qt.red, 3))
+            painter.drawRect(self.bounding_box.rect)
 
-        if self.parentReference.toggleBoundingBoxEnabled and self.draw == 1:
-            # if self.type == self.box_origin:
-            #     painter.setPen(QPen(Qt.red, 3))
-            #     rect = QRect(self.drag_start, self.drag_end).normalized()
-            #     self.draw = 0
-            #     painter.drawRect(rect)
-            if self.type == 'axial':
-                painter.setPen(QPen(Qt.red, 3))
-                rect = QRect(QPoint(self.pos_xyz_start[0],self.pos_xyz_start[1]), QPoint(self.pos_xyz_end[0],self.pos_xyz_end[1])).normalized()
-                painter.drawRect(rect)
-                self.draw = 0
-            elif self.type == 'sagittal':
-                painter.setPen(QPen(Qt.red, 3))
-                rect = QRect(QPoint(self.pos_xyz_start[1],self.pos_xyz_start[2]), QPoint(self.pos_xyz_end[1],self.pos_xyz_end[2])).normalized()
-                painter.drawRect(rect)
-                self.draw = 0
-            elif self.type == 'coronal':
-                painter.setPen(QPen(Qt.red, 3))
-                self.draw = 0
-                rect = QRect(QPoint(self.pos_xyz_start[0],self.pos_xyz_start[2]), QPoint(self.pos_xyz_end[0],self.pos_xyz_end[2])).normalized()
-                painter.drawRect(rect)      
+            # Draw handles
+            painter.setBrush(QBrush(Qt.red))
+            for handle_rect in self.bounding_box.handles.values():
+                painter.drawRect(handle_rect)
+     
+
+# def linear_convert(img):
+#     convert_scale = 255.0 / (np.max(img) - np.min(img))
+#     converted_img = convert_scale*img-(convert_scale*np.min(img))
+#     return converted_img
 
 
-                
+class ResizableRectItem(QObject):
+    rectResized = pyqtSignal(QRectF)
 
-            
+    def __init__(self, rect, parent=None):
+        super().__init__(parent)
+        self.rect = rect
+        self.handles = {}
+        self.handleWidth = 15  # Width of the handle
+        self.handleHeight = 15  # Height of the handle
+        self.updateHandlesPositions()
+        self.interactiveResize = False
+        self.currentHandle = None
 
-def linear_convert(img):
-    convert_scale = 255.0 / (np.max(img) - np.min(img))
-    converted_img = convert_scale*img-(convert_scale*np.min(img))
-    return converted_img
+    def handleAt(self, point):
+        for handle, rect in self.handles.items():
+            if rect.contains(point):
+                return handle
+        return None
+
+    def updateHandlesPositions(self):
+        w = self.handleWidth
+        h = self.handleHeight
+        rect = self.rect
+
+        # Calculate the positions of the handles
+        topMiddle = QPointF(rect.left() + (rect.width() - w) / 2, rect.top() - h / 2)
+        bottomMiddle = QPointF(rect.left() + (rect.width() - w) / 2, rect.bottom() + h / 2 - h)
+        leftMiddle = QPointF(rect.left() - w / 2, rect.top() + (rect.height() - h) / 2)
+        rightMiddle = QPointF(rect.right() + w / 2 - w, rect.top() + (rect.height() - h) / 2)
+
+        # Create QRectF objects for each handle
+        self.handles['top'] = QRectF(topMiddle, QSizeF(w, h))
+        self.handles['bottom'] = QRectF(bottomMiddle, QSizeF(w, h))
+        self.handles['left'] = QRectF(leftMiddle, QSizeF(w, h))
+        self.handles['right'] = QRectF(rightMiddle, QSizeF(w, h))
+
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.currentHandle = self.handleAt(event.pos())
+            self.interactiveResize = self.currentHandle is not None
+            if self.interactiveResize:
+                event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self.interactiveResize:
+            self.resizeItem(event.pos())
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self.interactiveResize = False
+        self.currentHandle = None
+
+    def resizeItem(self, pos):
+        if 'top' == self.currentHandle:
+            newTop = min(max(pos.y(), 0), 511 - self.rect.height())
+            self.rect.setTop(newTop)
+        elif 'bottom' == self.currentHandle:
+            newBottom = min(max(pos.y(), self.rect.top() + 1), 511)
+            self.rect.setBottom(newBottom)
+        elif 'left' == self.currentHandle:
+            newLeft = min(max(pos.x(), 0), 511 - self.rect.width())
+            self.rect.setLeft(newLeft)
+        elif 'right' == self.currentHandle:
+            newRight = min(max(pos.x(), self.rect.left() + 1), 511)
+            self.rect.setRight(newRight)
+        self.updateHandlesPositions()
+        self.rectResized.emit(self.rect)
