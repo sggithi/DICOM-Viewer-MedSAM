@@ -169,19 +169,19 @@ class CthreeD(QDialog):
         # Map the rectangle coordinates from the source plane to the target plane
         if source_plane == 'axial':
             if target_plane == 'sagittal':
-                return QRectF(0, rect.top(), 511, rect.height())
+                return QRectF(rect.top(), 0, rect.height(), 511)
             elif target_plane == 'coronal':
                 return QRectF(rect.left(), 0, rect.width(), 511)
         elif source_plane == 'sagittal':
             if target_plane == 'axial':
-                return QRectF(rect.left(), 0, rect.width(), 511)
+                return QRectF(0, rect.left(), 511, rect.height())
             elif target_plane == 'coronal':
                 return QRectF(0, rect.top(), 511, rect.height())
         elif source_plane == 'coronal':
             if target_plane == 'axial':
-                return QRectF(0, rect.top(), 511, rect.height())
-            elif target_plane == 'sagittal':
                 return QRectF(rect.left(), 0, rect.width(), 511)
+            elif target_plane == 'sagittal':
+                return QRectF(0, rect.top(), 511, rect.height())
             
     @staticmethod
     def adjust_image_based_on_ww_wl(img, ww, wl):
