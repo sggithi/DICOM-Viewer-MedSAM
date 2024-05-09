@@ -369,6 +369,7 @@ class CthreeD(QDialog):
         self.volWindow.imgs = imgs
         self.volWindow.patient = patient
         self.dcmInfo = ldf.load_dcm_info(dname, False)
+        self.image_loaded = True
         self.updatelist()
 
     def update_shape(self):
