@@ -83,18 +83,22 @@ class QPaintLabel2(QLabel):
             box_np = np.array([[xmin, ymin, xmax, ymax]])
             box_256 = box_np / np.array([W, H, W, H]) * 256
 
+            ########################################################
+            # medsam_lite_model(from medsam_infer.py), image embedding, box (256 size)
+            # get mask
             sam_mask = medsam_inference(medsam_lite_model, self.embedding, box_256, H, W)
-            # self.prev_mask = self.mask_c.copy()
-            
-            # initialize 
-  
+    
+            # initialize mask (zero) 
             self.mask_c = np.zeros((W,H), dtype="uint8") # (512, 512)
-            #self.mask_c[sam_mask != 0] = colors[self.color_idx % len(colors)]
+            
             self.mask_c[sam_mask != 0] = 255
             self.color_idx += 1
 
+            # self.origin imabe + self.mask => masked_image
             masked_image = cv2.add(self.originalImage, self.mask_c)
             self.processedImage = masked_image
+
+            ########################################################
             self.display_image()
 
             self.update()
@@ -174,7 +178,10 @@ class QPaintLabel2(QLabel):
             img_3c = np.repeat(self.image[:, :, None], 3, axis=-1)
         else:
             img_3c = self.image
-
+            
+        ###########################################################################################
+        ######### Get Image embedding when dicom image is uploaded ###############################
+        # size (256, 256)
         img_256 = transform.resize(
             img_3c, (256, 256), order=3, preserve_range=True, anti_aliasing=True
         ).astype(np.uint8)
@@ -185,7 +192,10 @@ class QPaintLabel2(QLabel):
             torch.tensor(img_256_norm).float().permute(2, 0, 1).unsqueeze(0).to(device)
         )
         print("Getting img embedding")
+        
         self.embedding = medsam_lite_model.image_encoder(img_256_tensor) # (1, 256, 64, 64)
+
+        ###########################################################################################
         self.img_3c = img_3c
         self.processedImage = self.image.copy()
         self.originalImage = self.processedImage

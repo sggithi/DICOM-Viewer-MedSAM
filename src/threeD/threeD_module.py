@@ -354,8 +354,13 @@ class CthreeD(QDialog):
         imgs = ldf.get_pixels_hu(patient)
         self.voxel = self.linear_convert(imgs)
         self.processedvoxel = self.voxel.copy()
+        # self.processdvoxel (N, H, W)
+        # print("size", self.processedvoxel.shape) # ex. (277, 512, 512)
+        ###########################################################################################
+        ### Get image embedding ???
+        # CF inference_3D.py
 
-        print("size", self.processedvoxel.shape)
+        ###########################################################################################
 
         self.update_shape()
 
@@ -363,6 +368,10 @@ class CthreeD(QDialog):
         self.imgLabel_2.setMouseTracking(True)
         self.imgLabel_3.setMouseTracking(True)
 
+        self.imgLabel_1.image_loaded = True
+        self.imgLabel_2.image_loaded = True
+        self.imgLabel_3.image_loaded = True
+ 
         self.updateimg()
         self.set_directory()
         self.volWindow = C3dView()
@@ -467,7 +476,15 @@ class CthreeD(QDialog):
         # Update the WW and WL label
         self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
 
-
+    def generateEvent(self):
+        ###################################################################################
+        # self.embedding (N, H, W)
+        # self.boudning_box
+        # for i in range self.processedvoxel.shape[0]:
+        # medsam_infer => 2D mask image??
+        ###################################################################################
+        return
+    
     @staticmethod
     def linear_convert(img):
         convert_scale = 255.0 / (np.max(img) - np.min(img))

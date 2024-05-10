@@ -56,6 +56,10 @@ class QPaintLabel3(QLabel):
 
         self.bounding_box = None
         self.image_loaded = False 
+
+
+
+
         
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:
@@ -146,6 +150,8 @@ class QPaintLabel3(QLabel):
         
 
     def display_image(self, window=1):
+       
+      
         self.imgr, self.imgc = self.processedImage.shape[0:2]
         qformat = QImage.Format_Indexed8
         if len(self.processedImage.shape) == 3:  # rows[0], cols[1], channels[2]
