@@ -48,11 +48,7 @@ class QPaintLabel3(QLabel):
         self.crosshairDrawingNeeded.connect(self.update)
 
         ## for MedSAM
-        self.dname = None
-        self.pos_xyz_start = [] # shared by axial, sagital, cornoal
-        self.pos_xyz_end = []
-        self.box_origin = None
-        self.draw = 0
+     
 
         self.bounding_box = None
         self.image_loaded = False 
@@ -133,8 +129,7 @@ class QPaintLabel3(QLabel):
                     self.bounding_box.mouseReleaseEvent(event)
                 self.update()
 
-                #print(self.type, np.array([self.drag_start.x(), self.drag_start.y(), self.drag_end.x(), self.drag_start.y()]))
-                self.draw = 1
+            
                 
                 self.drag_start = None
                 self.drag_end = None

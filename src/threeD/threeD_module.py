@@ -443,36 +443,7 @@ class CthreeD(QDialog):
         self.imgLabel_2.display_image(1)
         self.imgLabel_3.display_image(1)
         
-        
-        if self.imgLabel_1.box_origin != None:
-            self.imgLabel_2.pos_xyz_start = self.imgLabel_1.pos_xyz_start
-            self.imgLabel_3.pos_xyz_start = self.imgLabel_1.pos_xyz_start
-            self.imgLabel_2.pos_xyz_end = self.imgLabel_1.pos_xyz_end
-            self.imgLabel_3.pos_xyz_end = self.imgLabel_1.pos_xyz_end
-            self.imgLabel_1.draw = 1
-            self.imgLabel_2.draw = 1
-            self.imgLabel_3.draw = 1
-            self.imgLabel_1.box_origin = None
-
-        elif self.imgLabel_2.box_origin != None:
-            self.imgLabel_1.pos_xyz_start = self.imgLabel_2.pos_xyz_start
-            self.imgLabel_3.pos_xyz_start = self.imgLabel_2.pos_xyz_start
-            self.imgLabel_1.pos_xyz_end = self.imgLabel_2.pos_xyz_end
-            self.imgLabel_3.pos_xyz_end = self.imgLabel_2.pos_xyz_end
-            self.imgLabel_2.box_origin = None  
-            self.imgLabel_1.draw = 1
-            self.imgLabel_2.draw = 1
-            self.imgLabel_3.draw = 1
-
-        elif self.imgLabel_3.box_origin != None:
-            self.imgLabel_1.pos_xyz_start = self.imgLabel_3.pos_xyz_start
-            self.imgLabel_2.pos_xyz_start = self.imgLabel_3.pos_xyz_start
-            self.imgLabel_1.pos_xyz_end = self.imgLabel_3.pos_xyz_end
-            self.imgLabel_2.pos_xyz_end = self.imgLabel_3.pos_xyz_end
-            self.imgLabel_3.box_origin = None    
-            self.imgLabel_1.draw = 1
-            self.imgLabel_2.draw = 1
-            self.imgLabel_3.draw = 1      
+            
         # Update the WW and WL label
         self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
 
