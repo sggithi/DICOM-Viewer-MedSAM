@@ -38,7 +38,8 @@ class CthreeD(QDialog):
 
         self.volButton.clicked.connect(self.open_3dview)
 
-        self.w, self.h = self.imgLabel_1.width(), self.imgLabel_1.height()
+        # self.w, self.h = self.imgLabel_1.width(), self.imgLabel_1.height()
+
 
         self.imgLabel_1.type = 'axial'
         self.imgLabel_2.type = 'sagittal'
@@ -48,9 +49,9 @@ class CthreeD(QDialog):
         self.imgLabel_2.updateNeeded.connect(self.updateimg)
         self.imgLabel_3.updateNeeded.connect(self.updateimg)
 
-        self.axialGrid.setSpacing(0)
-        self.saggitalGrid.setSpacing(0)
-        self.coronalGrid.setSpacing(0)
+        self.axialGrid.setSpacing(1)
+        self.saggitalGrid.setSpacing(1)
+        self.coronalGrid.setSpacing(1)
 
         h = QSpacerItem(10, 10, QSizePolicy.Fixed, QSizePolicy.Fixed)
         v = QSpacerItem(10, 10, QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -85,6 +86,7 @@ class CthreeD(QDialog):
         self.imgLabel_1.setFixedSize(512, 512)
         self.imgLabel_2.setFixedSize(512, 512)
         self.imgLabel_3.setFixedSize(512, 512)
+        
 
         # creating a push button 
         # Bounding Box & HUWindowing
@@ -115,28 +117,72 @@ class CthreeD(QDialog):
         # TODO: add button function here. 
         # self.generateMask.clicked.connect()
 
+        self.imgLabel_1.bounding_box_resized.connect(self.update_bounding_boxes)
+        self.imgLabel_2.bounding_box_resized.connect(self.update_bounding_boxes)
+        self.imgLabel_3.bounding_box_resized.connect(self.update_bounding_boxes)
+
 
     def UiComponents(self): 
-    
+        self.windowWidth = 400  # Default window width
+        self.windowLevel = 40   # Default window level
 
-            self.windowWidth = 400  # Default window width
-            self.windowLevel = 40   # Default window level
+        self.toggleSlicerEnabled = False
+        self.toggleBoundingBoxEnabled = True
 
-            self.toggleSlicerEnabled = False
-            self.toggleBoundingBoxEnabled = True
+        # This spacer will push everything to the left of it to the left, and everything to the right of it to the right
+        self.colormap_hBox.addStretch(1)
 
-            # This spacer will push everything to the left of it to the left, and everything to the right of it to the right
-            self.colormap_hBox.addStretch(1)
+        self.wwlLabel = QLabel(self)
+        self.wwlLabel.setFont(QFont("Arial", 12))
+        self.wwlLabel.setAlignment(Qt.AlignCenter)
+        self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
+        self.wwlLabel.setStyleSheet("QLabel { margin: 5px; }")  
+        self.colormap_hBox.addWidget(self.wwlLabel)
 
-            self.wwlLabel = QLabel(self)
-            self.wwlLabel.setFont(QFont("Arial", 12))
-            self.wwlLabel.setAlignment(Qt.AlignCenter)
-            self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
-            self.wwlLabel.setStyleSheet("QLabel { margin: 5px; }")  
-            self.colormap_hBox.addWidget(self.wwlLabel)
+    def update_bounding_boxes(self, rect):
+        if self.sender() == self.imgLabel_1.bounding_box:  # Axial plane
+            self.imgLabel_2.bounding_box.rect.setRight(rect.top())  #moving y axis in axial moves x axis in sagittal( which is left and right)
+            self.imgLabel_2.bounding_box.rect.setLeft(rect.bottom())  
+            self.imgLabel_3.bounding_box.rect.setLeft(rect.left())  #moving x axis in axial moves x axis in coronal
+            self.imgLabel_3.bounding_box.rect.setRight(rect.right())  
 
-    
-        
+        elif self.sender() == self.imgLabel_2.bounding_box:  # Sagittal plane
+            self.imgLabel_1.bounding_box.rect.setBottom(rect.left())  
+            self.imgLabel_1.bounding_box.rect.setTop(rect.right())  
+            self.imgLabel_3.bounding_box.rect.setTop(rect.top())  
+            self.imgLabel_3.bounding_box.rect.setBottom(rect.bottom()) 
+        elif self.sender() == self.imgLabel_3.bounding_box:  # Coronal plane
+            self.imgLabel_1.bounding_box.rect.setLeft(rect.left())  
+            self.imgLabel_1.bounding_box.rect.setRight(rect.right())  
+            self.imgLabel_2.bounding_box.rect.setTop(rect.top())  
+            self.imgLabel_2.bounding_box.rect.setBottom(rect.bottom())  
+
+        self.imgLabel_1.bounding_box.updateHandlesPositions()
+        self.imgLabel_2.bounding_box.updateHandlesPositions()
+        self.imgLabel_3.bounding_box.updateHandlesPositions()
+
+        self.imgLabel_1.update()
+        self.imgLabel_2.update()
+        self.imgLabel_3.update()
+
+    def map_rect_to_plane(self, rect, source_plane, target_plane):
+        # Map the rectangle coordinates from the source plane to the target plane
+        if source_plane == 'axial':
+            if target_plane == 'sagittal':
+                return QRectF(rect.top(), 0, rect.height(), 511)
+            elif target_plane == 'coronal':
+                return QRectF(rect.left(), 0, rect.width(), 511)
+        elif source_plane == 'sagittal':
+            if target_plane == 'axial':
+                return QRectF(0, rect.left(), 511, rect.height())
+            elif target_plane == 'coronal':
+                return QRectF(0, rect.top(), 511, rect.height())
+        elif source_plane == 'coronal':
+            if target_plane == 'axial':
+                return QRectF(rect.left(), 0, rect.width(), 511)
+            elif target_plane == 'sagittal':
+                return QRectF(0, rect.top(), 511, rect.height())
+            
     @staticmethod
     def adjust_image_based_on_ww_wl(img, ww, wl):
         lower_bound = wl - ww / 2
@@ -275,6 +321,12 @@ class CthreeD(QDialog):
         super().resizeEvent(event)
         self.w = self.imgLabel_1.width()
         self.h = self.imgLabel_1.height()
+
+        # Print the sizes of imgLabel_1, imgLabel_2, and imgLabel_3
+        print("imgLabel_1 size: width =", self.imgLabel_1.width(), "height =", self.imgLabel_1.height())
+        print("imgLabel_2 size: width =", self.imgLabel_2.width(), "height =", self.imgLabel_2.height())
+        print("imgLabel_3 size: width =", self.imgLabel_3.width(), "height =", self.imgLabel_3.height())
+                
         if self.processedvoxel is not None:
             self.updateimg()
 
@@ -317,6 +369,7 @@ class CthreeD(QDialog):
         self.volWindow.imgs = imgs
         self.volWindow.patient = patient
         self.dcmInfo = ldf.load_dcm_info(dname, False)
+        self.image_loaded = True
         self.updatelist()
 
     def update_shape(self):
@@ -410,7 +463,7 @@ class CthreeD(QDialog):
             self.imgLabel_3.box_origin = None    
             self.imgLabel_1.draw = 1
             self.imgLabel_2.draw = 1
-            self.imgLabel_3.draw = 1
+            self.imgLabel_3.draw = 1      
         # Update the WW and WL label
         self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
 

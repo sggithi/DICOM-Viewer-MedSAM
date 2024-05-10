@@ -73,7 +73,7 @@ class CMainWindow(QMainWindow):
             if self.first3D:
                 self.ui_3D = CthreeD()
                 self.first3D = False
-            self.ui_3D.show()
+            self.ui_3D.showMaximized()  # make the window full screen
             self.refresh3D = False
             self.ui_3D.rejected.connect(self.close3d)
         elif self.justclose:
@@ -82,7 +82,6 @@ class CMainWindow(QMainWindow):
             if not self.threeDaction.isChecked():
                 self.threeDaction.setChecked(True)
             self.ui_3D.raise_()
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)  # QApplication eats argv in constructor
