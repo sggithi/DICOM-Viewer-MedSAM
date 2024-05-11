@@ -128,6 +128,7 @@ class CthreeD(QDialog):
         self.imgLabel_3.bounding_box_resized.connect(self.update_bounding_boxes)
 
         self.segmentation_result = None
+        self.origin_processedvoxel = None
 
     def UiComponents(self): 
         self.windowWidth = 400  # Default window width
@@ -329,10 +330,10 @@ class CthreeD(QDialog):
         self.w = self.imgLabel_1.width()
         self.h = self.imgLabel_1.height()
 
-        # Print the sizes of imgLabel_1, imgLabel_2, and imgLabel_3
-        print("imgLabel_1 size: width =", self.imgLabel_1.width(), "height =", self.imgLabel_1.height())
-        print("imgLabel_2 size: width =", self.imgLabel_2.width(), "height =", self.imgLabel_2.height())
-        print("imgLabel_3 size: width =", self.imgLabel_3.width(), "height =", self.imgLabel_3.height())
+        # # Print the sizes of imgLabel_1, imgLabel_2, and imgLabel_3
+        # print("imgLabel_1 size: width =", self.imgLabel_1.width(), "height =", self.imgLabel_1.height())
+        # print("imgLabel_2 size: width =", self.imgLabel_2.width(), "height =", self.imgLabel_2.height())
+        # print("imgLabel_3 size: width =", self.imgLabel_3.width(), "height =", self.imgLabel_3.height())
                 
         if self.processedvoxel is not None:
             self.updateimg()
@@ -360,7 +361,9 @@ class CthreeD(QDialog):
         patient = ldf.load_scan(dname)
         imgs = ldf.get_pixels_hu(patient)
         self.voxel = self.linear_convert(imgs)
-        self.processedvoxel = self.voxel.copy()
+        self.processedvoxel = self.voxel.copy().astype(np.uint8)
+        self.origin_processedvoxel = self.voxel.copy().astype(np.uint8)
+
         # self.processdvoxel (N, H, W)
         # print("size", self.processedvoxel.shape) # ex. (277, 512, 512)
         ###########################################################################################
@@ -499,28 +502,25 @@ class CthreeD(QDialog):
         ###################################################################################
         #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         bbox_shift = 5
-        if self.imgLabel_1.bounding_box is not None and self.imgLabel_2.bounding_box is not None and self.imgLabel_3.bounding_box is not None:
+        print("Generate")
+        if self.imgLabel_1.bounding_box is not None: # and self.imgLabel_2.bounding_box is not None and self.imgLabel_3.bounding_box is not None:
             # Get the bounding box coordinates from each plane
             axial_box = self.imgLabel_1.bounding_box.rect
-            sagittal_box = self.imgLabel_2.bounding_box.rect
-            coronal_box = self.imgLabel_3.bounding_box.rect
+            #sagittal_box = self.imgLabel_2.bounding_box.rect
+            #coronal_box = self.imgLabel_3.bounding_box.rect
 
             # Convert the bounding box coordinates to the appropriate format
-            box_np = np.array([
-                [axial_box.left(), axial_box.top(), axial_box.right(), axial_box.bottom()],
-                [sagittal_box.left(), sagittal_box.top(), sagittal_box.right(), sagittal_box.bottom()],
-                [coronal_box.left(), coronal_box.top(), coronal_box.right(), coronal_box.bottom()]
-            ])
+            xmin = min(axial_box.left(), axial_box.right())
+            xmax = max(axial_box.left(), axial_box.right())
+            ymin = min(axial_box.top(), axial_box.bottom())
+            ymax = max(axial_box.top(), axial_box.bottom())
+         
+            box_np = np.array([[xmin, ymin, xmax, ymax]])
+            H, W = self.origin_processedvoxel.shape[1:]
+            box_256 = box_np / np.array([W, H, W, H]) * 256
 
-            # Initialize segmentation_result if it doesn't exist
-            if self.segmentation_result is None:
-                self.segmentation_result = np.zeros_like(self.processedvoxel, dtype=np.uint8)
-
-            # Perform inference using MedSAM
-            seg_3D = np.zeros_like(self.processedvoxel, dtype=np.uint8)
-            for i in range(self.processedvoxel.shape[0]):
-                img_2d = self.processedvoxel[i]
-                H, W = img_2d.shape[:2]
+            for i in range(self.origin_processedvoxel.shape[0]):
+                img_2d = self.origin_processedvoxel[i, :, :]
                 img_3c = np.repeat(img_2d[:, :, None], 3, axis=-1)  # (H, W, 3)
 
                 # MedSAM Lite preprocessing
@@ -534,18 +534,26 @@ class CthreeD(QDialog):
                 with torch.no_grad():
                     image_embedding = medsam_lite_model.image_encoder(img_256_tensor)
 
-                box = get_bbox(np.uint8(self.segmentation_result[i] > 0), bbox_shift)  # (4,)
-                sam_mask = medsam_inference(medsam_lite_model, image_embedding, box, (newh, neww), (H, W))
-                seg_3D[i, sam_mask > 0] = 1
+                # box = get_bbox(np.uint8(self.segmentation_result[i] > 0), bbox_shift)  # (4,)
+                sam_mask = medsam_inference(medsam_lite_model, image_embedding, box_256, H, W)
+                
+                mask_c = np.zeros((H,W), dtype="uint8") # (512, 512)
+            
+                mask_c[sam_mask != 0] = 255
+                # self.origin imabe + self.mask => masked_image
+                masked_image = cv2.add(img_2d, mask_c)
+        
+                
+                # Update the processedvoxel with the masked image
+                self.processedvoxel[i, :, :] = masked_image
+                
 
             # Update the segmentation result
-            self.segmentation_result = seg_3D
-
+            print("segmentation end")
+            
             # Update the display
             self.updateimg()
-
-            print("segmentation_result shape:", self.segmentation_result.shape)
-            print("segmentation_result unique values:", np.unique(self.segmentation_result))
+            print("Update end")
 
     @staticmethod
     def linear_convert(img):

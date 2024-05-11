@@ -97,6 +97,8 @@ class QPaintLabel2(QLabel):
             # self.origin imabe + self.mask => masked_image
             masked_image = cv2.add(self.originalImage, self.mask_c)
             self.processedImage = masked_image
+         
+            # cv2.imshow('Masked Image', masked_image)
 
             ########################################################
             self.display_image()
@@ -173,7 +175,7 @@ class QPaintLabel2(QLabel):
         print(np.nanmax(dcm.pixel_array), np.nanmin(dcm.pixel_array))
         dcm.image = dcm.pixel_array * dcm.RescaleSlope + dcm.RescaleIntercept
         self.image = linear_convert(dcm.image).astype(np.uint8)
-
+        print(self.image)
         if len(self.image.shape) == 2:
             img_3c = np.repeat(self.image[:, :, None], 3, axis=-1)
         else:
@@ -198,6 +200,7 @@ class QPaintLabel2(QLabel):
         ###########################################################################################
         self.img_3c = img_3c
         self.processedImage = self.image.copy()
+        cv2.imshow('Masked Image', self.processedImage)
         self.originalImage = self.processedImage
         self.imgr, self.imgc = self.processedImage.shape[0:2]
         self.display_image()
