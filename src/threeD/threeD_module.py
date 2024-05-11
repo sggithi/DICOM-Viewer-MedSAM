@@ -369,7 +369,29 @@ class CthreeD(QDialog):
         ###########################################################################################
         ### Get image embedding ???
         # CF inference_3D.py
+        embedding_dim = (1, 256, 64, 64) 
+        print("getting embedding....")
+        # self.embedding = np.zeros((self.origin_processedvoxel.shape[0],) + embedding_dim, dtype=np.float32)
+        self.embedding = torch.zeros((self.origin_processedvoxel.shape[0],) + embedding_dim, dtype=torch.float32, device=device)
+  
+        for i in range(self.origin_processedvoxel.shape[0]):
+            img_2d = self.origin_processedvoxel[i, :, :]
+            img_3c = np.repeat(img_2d[:, :, None], 3, axis=-1)  # (H, W, 3)
 
+            # MedSAM Lite preprocessing
+            img_256 = resize_longest_side(img_3c, 256)
+            newh, neww = img_256.shape[:2]
+            img_256 = (img_256 - img_256.min()) / np.clip(
+                img_256.max() - img_256.min(), a_min=1e-8, a_max=None
+            )
+            img_256_padded = pad_image(img_256, 256)
+            img_256_tensor = torch.tensor(img_256_padded).float().permute(2, 0, 1).unsqueeze(0).to(device)
+        
+            with torch.no_grad():
+                image_embedding = medsam_lite_model.image_encoder(img_256_tensor)
+            
+            self.embedding[i,:, :, :] = image_embedding
+        print("Done!")
         ###########################################################################################
 
         self.update_shape()
@@ -521,21 +543,21 @@ class CthreeD(QDialog):
 
             for i in range(self.origin_processedvoxel.shape[0]):
                 img_2d = self.origin_processedvoxel[i, :, :]
-                img_3c = np.repeat(img_2d[:, :, None], 3, axis=-1)  # (H, W, 3)
+                # img_3c = np.repeat(img_2d[:, :, None], 3, axis=-1)  # (H, W, 3)
 
-                # MedSAM Lite preprocessing
-                img_256 = resize_longest_side(img_3c, 256)
-                newh, neww = img_256.shape[:2]
-                img_256 = (img_256 - img_256.min()) / np.clip(
-                    img_256.max() - img_256.min(), a_min=1e-8, a_max=None
-                )
-                img_256_padded = pad_image(img_256, 256)
-                img_256_tensor = torch.tensor(img_256_padded).float().permute(2, 0, 1).unsqueeze(0).to(device)
-                with torch.no_grad():
-                    image_embedding = medsam_lite_model.image_encoder(img_256_tensor)
+                # # MedSAM Lite preprocessing
+                # img_256 = resize_longest_side(img_3c, 256)
+                # newh, neww = img_256.shape[:2]
+                # img_256 = (img_256 - img_256.min()) / np.clip(
+                #     img_256.max() - img_256.min(), a_min=1e-8, a_max=None
+                # )
+                # img_256_padded = pad_image(img_256, 256)
+                # img_256_tensor = torch.tensor(img_256_padded).float().permute(2, 0, 1).unsqueeze(0).to(device)
+                # with torch.no_grad():
+                #     image_embedding = medsam_lite_model.image_encoder(img_256_tensor)
 
                 # box = get_bbox(np.uint8(self.segmentation_result[i] > 0), bbox_shift)  # (4,)
-                sam_mask = medsam_inference(medsam_lite_model, image_embedding, box_256, H, W)
+                sam_mask = medsam_inference(medsam_lite_model, self.embedding[i], box_256, H, W)
                 
                 mask_c = np.zeros((H,W), dtype="uint8") # (512, 512)
             
