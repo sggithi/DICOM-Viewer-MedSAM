@@ -19,77 +19,89 @@ import torch.multiprocessing as mp
 import argparse
 
 #%% set seeds
+# torch.set_float32_matmul_precision('high')
+# torch.manual_seed(2023)
+# torch.cuda.manual_seed(2023)
+# np.random.seed(2023)
+
+# parser = argparse.ArgumentParser()
+
+# parser.add_argument(
+#     '-data_root',
+#     type=str,
+#     required=True,
+#     help='root directory of the data',
+# )
+# parser.add_argument(
+#     '-pred_save_dir',
+#     type=str,
+#     required=True,
+#     help='directory to save the prediction',
+# )
+# parser.add_argument(
+#     '-medsam_lite_checkpoint_path',
+#     type=str,
+#     default="workdir/lite_medsam.pth",
+#     help='path to the checkpoint of MedSAM-Lite',
+# )
+# parser.add_argument(
+#     '-device',
+#     type=str,
+#     default="cuda:0",
+#     help='device to run the inference',
+# )
+# parser.add_argument(
+#     '-num_workers',
+#     type=int,
+#     default=4,
+#     help='number of workers for inference with multiprocessing',
+# )
+# parser.add_argument(
+#     '--save_overlay',
+#     action='store_true',
+#     help='whether to save the overlay image'
+# )
+# parser.add_argument(
+#     '-png_save_dir',
+#     type=str,
+#     default='./overlay/CT_Abd',
+#     help='directory to save the overlay image'
+# )
+# parser.add_argument(
+#     '--overwrite',
+#     action='store_true',
+#     help='whether to overwrite the existing prediction'
+# )
+
+# args = parser.parse_args()
+
+
+#%% set seeds
 torch.set_float32_matmul_precision('high')
 torch.manual_seed(2023)
 torch.cuda.manual_seed(2023)
 np.random.seed(2023)
 
-parser = argparse.ArgumentParser()
-
-parser.add_argument(
-    '-data_root',
-    type=str,
-    required=True,
-    help='root directory of the data',
-)
-parser.add_argument(
-    '-pred_save_dir',
-    type=str,
-    required=True,
-    help='directory to save the prediction',
-)
-parser.add_argument(
-    '-medsam_lite_checkpoint_path',
-    type=str,
-    default="workdir/lite_medsam.pth",
-    help='path to the checkpoint of MedSAM-Lite',
-)
-parser.add_argument(
-    '-device',
-    type=str,
-    default="cuda:0",
-    help='device to run the inference',
-)
-parser.add_argument(
-    '-num_workers',
-    type=int,
-    default=4,
-    help='number of workers for inference with multiprocessing',
-)
-parser.add_argument(
-    '--save_overlay',
-    action='store_true',
-    help='whether to save the overlay image'
-)
-parser.add_argument(
-    '-png_save_dir',
-    type=str,
-    default='./overlay/CT_Abd',
-    help='directory to save the overlay image'
-)
-parser.add_argument(
-    '--overwrite',
-    action='store_true',
-    help='whether to overwrite the existing prediction'
-)
-
-args = parser.parse_args()
-
-data_root = args.data_root
-pred_save_dir = args.pred_save_dir
-save_overlay = args.save_overlay
-num_workers = args.num_workers
-overwrite = args.overwrite
-if save_overlay:
-    assert args.png_save_dir is not None, "Please specify the directory to save the overlay image"
-    png_save_dir = args.png_save_dir
-    makedirs(png_save_dir, exist_ok=True)
-medsam_lite_checkpoint_path = args.medsam_lite_checkpoint_path
-makedirs(pred_save_dir, exist_ok=True)
+medsam_lite_checkpoint_path = "./work_dir/LiteMedSAM/lite_medsam.pth"
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 bbox_shift = 5
-device = torch.device(args.device)
-gt_path_files = sorted(glob(join(data_root, '*.npz'), recursive=True))
 image_size = 256
+
+# data_root = args.data_root
+# pred_save_dir = args.pred_save_dir
+# save_overlay = args.save_overlay
+# num_workers = args.num_workers
+# overwrite = args.overwrite
+# if save_overlay:
+#     assert args.png_save_dir is not None, "Please specify the directory to save the overlay image"
+#     png_save_dir = args.png_save_dir
+#     makedirs(png_save_dir, exist_ok=True)
+# medsam_lite_checkpoint_path = args.medsam_lite_checkpoint_path
+# makedirs(pred_save_dir, exist_ok=True)
+# bbox_shift = 5
+# device = torch.device(args.device)
+# gt_path_files = sorted(glob(join(data_root, '*.npz'), recursive=True))
+# image_size = 256
 
 def resize_longest_side(image, target_length):
     """
@@ -252,8 +264,14 @@ def medsam_inference(medsam_model, img_embed, box_256, new_size, original_size):
 
     return medsam_seg
 
+#get_bbox function assumes that the input gt2D is a binary mask where 1 represents the object and 0 represents the background
 def get_bbox(gt2D, bbox_shift=5):
-    assert np.max(gt2D)==1 and np.min(gt2D)==0.0, f'ground truth should be 0, 1, but got {np.unique(gt2D)}'
+    if np.max(gt2D) == 0:
+        # If all values are 0, return a default bounding box
+        H, W = gt2D.shape
+        return np.array([0, 0, W, H])
+
+    assert np.max(gt2D) == 1 and np.min(gt2D) == 0.0, f'ground truth should be 0, 1, but got {np.unique(gt2D)}'
     y_indices, x_indices = np.where(gt2D > 0)
     x_min, x_max = np.min(x_indices), np.max(x_indices)
     y_min, y_max = np.min(y_indices), np.max(y_indices)
@@ -264,7 +282,6 @@ def get_bbox(gt2D, bbox_shift=5):
     y_min = max(0, y_min - bbox_shift)
     y_max = min(H, y_max + bbox_shift)
     bboxes = np.array([x_min, y_min, x_max, y_max])
-
     return bboxes
 
 
@@ -399,10 +416,10 @@ def MedSAM_infer_npz(gt_path_file):
             plt.savefig(join(png_save_dir, npz_name.split(".")[0] + '.png'), dpi=300)
             plt.close()
 
-if __name__ == '__main__':
-    num_workers = num_workers
-    mp.set_start_method('spawn')
-    with mp.Pool(processes=num_workers) as pool:
-        with tqdm(total=len(gt_path_files)) as pbar:
-            for i, _ in tqdm(enumerate(pool.imap_unordered(MedSAM_infer_npz, gt_path_files))):
-                pbar.update()
+# if __name__ == '__main__':
+#     num_workers = num_workers
+#     mp.set_start_method('spawn')
+#     with mp.Pool(processes=num_workers) as pool:
+#         with tqdm(total=len(gt_path_files)) as pbar:
+#             for i, _ in tqdm(enumerate(pool.imap_unordered(MedSAM_infer_npz, gt_path_files))):
+#                 pbar.update()
