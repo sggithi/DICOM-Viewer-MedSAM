@@ -546,22 +546,25 @@ class CthreeD(QDialog):
             zstart = int(zmin / 512 * N)
             zend = int(zmax / 512 * N)
 
-            for i in range(zstart, zend + 1):
+            for i in range(N):
                 
                 img_2d = self.origin_processedvoxel[i, :, :]
-                sam_mask = medsam_inference(medsam_lite_model, self.embedding[i], box_256, H, W)
+                if i >= zstart and i <= zend:
+                    sam_mask = medsam_inference(medsam_lite_model, self.embedding[i], box_256, H, W)
+
+                    mask_c = np.zeros((H,W), dtype="uint8") # (512, 512)
                 
-                mask_c = np.zeros((H,W), dtype="uint8") # (512, 512)
+                    mask_c[sam_mask != 0] = 255
+                    # self.origin imabe + self.mask => masked_image
+                    masked_image = cv2.add(img_2d, mask_c)
             
-                mask_c[sam_mask != 0] = 255
-                # self.origin imabe + self.mask => masked_image
-                masked_image = cv2.add(img_2d, mask_c)
-        
 
-                # Update the processedvoxel with the masked image
-                self.processedvoxel[i, :, :] = masked_image
+                    # Update the processedvoxel with the masked image
+                    self.processedvoxel[i, :, :] = masked_image
                 
-
+                else:
+                    self.processedvoxel[i, :, :] = img_2d
+           
             # Update the segmentation result
             print("segmentation end")
             
