@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUi
 import os
 import cv2
+import torch
 import threeD.loaddicomfile as ldf
 import numpy as np
 from threeD.vol_view_module import C3dView
@@ -12,6 +13,11 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from .inference_3D import medsam_lite_model, medsam_inference, resize_longest_side, pad_image, get_bbox
+# with torch.no_grad():
+#     img_256_tensor = torch.tensor(self.processedvoxel).float().permute(0, 3, 1, 2).to(device)
+#     self.embedding = medsam_lite_model.image_encoder(img_256_tensor)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class CthreeD(QDialog):
     def __init__(self):
@@ -114,13 +120,15 @@ class CthreeD(QDialog):
         self.generateMask.setEnabled(False)
 
         # Generate Button 
-        # TODO: add button function here. 
-        # self.generateMask.clicked.connect()
+        # Connect the clicked signal of the generateMask button to the generateEvent method
+        self.generateMask.clicked.connect(self.generateEvent)
 
         self.imgLabel_1.bounding_box_resized.connect(self.update_bounding_boxes)
         self.imgLabel_2.bounding_box_resized.connect(self.update_bounding_boxes)
         self.imgLabel_3.bounding_box_resized.connect(self.update_bounding_boxes)
 
+        self.segmentation_result = None
+        self.origin_processedvoxel = None
 
     def UiComponents(self): 
         self.windowWidth = 400  # Default window width
@@ -322,10 +330,10 @@ class CthreeD(QDialog):
         self.w = self.imgLabel_1.width()
         self.h = self.imgLabel_1.height()
 
-        # Print the sizes of imgLabel_1, imgLabel_2, and imgLabel_3
-        print("imgLabel_1 size: width =", self.imgLabel_1.width(), "height =", self.imgLabel_1.height())
-        print("imgLabel_2 size: width =", self.imgLabel_2.width(), "height =", self.imgLabel_2.height())
-        print("imgLabel_3 size: width =", self.imgLabel_3.width(), "height =", self.imgLabel_3.height())
+        # # Print the sizes of imgLabel_1, imgLabel_2, and imgLabel_3
+        # print("imgLabel_1 size: width =", self.imgLabel_1.width(), "height =", self.imgLabel_1.height())
+        # print("imgLabel_2 size: width =", self.imgLabel_2.width(), "height =", self.imgLabel_2.height())
+        # print("imgLabel_3 size: width =", self.imgLabel_3.width(), "height =", self.imgLabel_3.height())
                 
         if self.processedvoxel is not None:
             self.updateimg()
@@ -353,9 +361,38 @@ class CthreeD(QDialog):
         patient = ldf.load_scan(dname)
         imgs = ldf.get_pixels_hu(patient)
         self.voxel = self.linear_convert(imgs)
-        self.processedvoxel = self.voxel.copy()
+        self.processedvoxel = self.voxel.copy().astype(np.uint8)
+        self.origin_processedvoxel = self.voxel.copy().astype(np.uint8)
 
-        print("size", self.processedvoxel.shape)
+        # self.processdvoxel (N, H, W)
+        # print("size", self.processedvoxel.shape) # ex. (277, 512, 512)
+        ###########################################################################################
+        ### Get image embedding ???
+        # CF inference_3D.py
+        embedding_dim = (1, 256, 64, 64) 
+        print("getting embedding....")
+        # self.embedding = np.zeros((self.origin_processedvoxel.shape[0],) + embedding_dim, dtype=np.float32)
+        self.embedding = torch.zeros((self.origin_processedvoxel.shape[0],) + embedding_dim, dtype=torch.float32, device=device)
+  
+        for i in range(self.origin_processedvoxel.shape[0]):
+            img_2d = self.origin_processedvoxel[i, :, :]
+            img_3c = np.repeat(img_2d[:, :, None], 3, axis=-1)  # (H, W, 3)
+
+            # MedSAM Lite preprocessing
+            img_256 = resize_longest_side(img_3c, 256)
+            newh, neww = img_256.shape[:2]
+            img_256 = (img_256 - img_256.min()) / np.clip(
+                img_256.max() - img_256.min(), a_min=1e-8, a_max=None
+            )
+            img_256_padded = pad_image(img_256, 256)
+            img_256_tensor = torch.tensor(img_256_padded).float().permute(2, 0, 1).unsqueeze(0).to(device)
+        
+            with torch.no_grad():
+                image_embedding = medsam_lite_model.image_encoder(img_256_tensor)
+            
+            self.embedding[i,:, :, :] = image_embedding
+        print("Done!")
+        ###########################################################################################
 
         self.update_shape()
 
@@ -363,6 +400,10 @@ class CthreeD(QDialog):
         self.imgLabel_2.setMouseTracking(True)
         self.imgLabel_3.setMouseTracking(True)
 
+        self.imgLabel_1.image_loaded = True
+        self.imgLabel_2.image_loaded = True
+        self.imgLabel_3.image_loaded = True
+ 
         self.updateimg()
         self.set_directory()
         self.volWindow = C3dView()
@@ -400,6 +441,7 @@ class CthreeD(QDialog):
 
         axial = (self.processedvoxel[a_loc, :, :]).astype(np.uint8).copy()
         sagittal = (self.processedvoxel[:, :, s_loc]).astype(np.uint8).copy()
+        
         coronal = (self.processedvoxel[:, c_loc, :]).astype(np.uint8).copy()
 
         self.imgLabel_1.slice_loc = [s_loc, c_loc, a_loc]
@@ -434,39 +476,101 @@ class CthreeD(QDialog):
         self.imgLabel_2.display_image(1)
         self.imgLabel_3.display_image(1)
         
-        
-        if self.imgLabel_1.box_origin != None:
-            self.imgLabel_2.pos_xyz_start = self.imgLabel_1.pos_xyz_start
-            self.imgLabel_3.pos_xyz_start = self.imgLabel_1.pos_xyz_start
-            self.imgLabel_2.pos_xyz_end = self.imgLabel_1.pos_xyz_end
-            self.imgLabel_3.pos_xyz_end = self.imgLabel_1.pos_xyz_end
-            self.imgLabel_1.draw = 1
-            self.imgLabel_2.draw = 1
-            self.imgLabel_3.draw = 1
-            self.imgLabel_1.box_origin = None
-
-        elif self.imgLabel_2.box_origin != None:
-            self.imgLabel_1.pos_xyz_start = self.imgLabel_2.pos_xyz_start
-            self.imgLabel_3.pos_xyz_start = self.imgLabel_2.pos_xyz_start
-            self.imgLabel_1.pos_xyz_end = self.imgLabel_2.pos_xyz_end
-            self.imgLabel_3.pos_xyz_end = self.imgLabel_2.pos_xyz_end
-            self.imgLabel_2.box_origin = None  
-            self.imgLabel_1.draw = 1
-            self.imgLabel_2.draw = 1
-            self.imgLabel_3.draw = 1
-
-        elif self.imgLabel_3.box_origin != None:
-            self.imgLabel_1.pos_xyz_start = self.imgLabel_3.pos_xyz_start
-            self.imgLabel_2.pos_xyz_start = self.imgLabel_3.pos_xyz_start
-            self.imgLabel_1.pos_xyz_end = self.imgLabel_3.pos_xyz_end
-            self.imgLabel_2.pos_xyz_end = self.imgLabel_3.pos_xyz_end
-            self.imgLabel_3.box_origin = None    
-            self.imgLabel_1.draw = 1
-            self.imgLabel_2.draw = 1
-            self.imgLabel_3.draw = 1      
         # Update the WW and WL label
         self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
 
+        # Update the display of the segmentation result on the axial, sagittal, and coronal planes
+        if self.segmentation_result is not None:
+            axial_seg = self.segmentation_result[a_loc, :, :].astype(np.uint8) * 255
+            sagittal_seg = self.segmentation_result[:, :, s_loc].astype(np.uint8) * 255
+            coronal_seg = self.segmentation_result[:, c_loc, :].astype(np.uint8) * 255
+
+            # Create color masks for each plane
+            axial_mask = np.zeros((axial_seg.shape[0], axial_seg.shape[1], 3), dtype=np.uint8)
+            axial_mask[axial_seg > 0] = (0, 255, 0)  # Green color for segmentation
+
+            sagittal_mask = np.zeros((sagittal_seg.shape[0], sagittal_seg.shape[1], 3), dtype=np.uint8)
+            sagittal_mask[sagittal_seg > 0] = (0, 255, 0)  # Green color for segmentation
+
+            coronal_mask = np.zeros((coronal_seg.shape[0], coronal_seg.shape[1], 3), dtype=np.uint8)
+            coronal_mask[coronal_seg > 0] = (0, 255, 0)  # Green color for segmentation
+
+            # Overlay the color masks on the original images
+            axial_overlaid = cv2.addWeighted(cv2.cvtColor(axial_adjusted, cv2.COLOR_GRAY2BGR), 1, axial_mask, 0.3, 0)
+            sagittal_overlaid = cv2.addWeighted(cv2.cvtColor(sagittal_adjusted, cv2.COLOR_GRAY2BGR), 1, sagittal_mask, 0.3, 0)
+            coronal_overlaid = cv2.addWeighted(cv2.cvtColor(coronal_adjusted, cv2.COLOR_GRAY2BGR), 1, coronal_mask, 0.3, 0)
+
+            # Update processedImage for each label with the overlaid images
+            self.imgLabel_1.processedImage = axial_overlaid
+            self.imgLabel_2.processedImage = sagittal_overlaid
+            self.imgLabel_3.processedImage = coronal_overlaid
+        else:
+            # If segmentation result is not available, use the adjusted images
+            self.imgLabel_1.processedImage = axial_adjusted
+            self.imgLabel_2.processedImage = sagittal_adjusted
+            self.imgLabel_3.processedImage = coronal_adjusted
+
+        # Display the images
+        self.imgLabel_1.display_image(1)
+        self.imgLabel_2.display_image(1)
+        self.imgLabel_3.display_image(1)
+
+
+    def generateEvent(self):
+        ###################################################################################
+        # When user press generate button, start generating mask
+        # Using axial bounding box, axial image embedding with medsam_inference
+        # 
+        # 
+        ###################################################################################
+
+        print("Generate")
+        if self.imgLabel_1.bounding_box is not None: # and self.imgLabel_2.bounding_box is not None and self.imgLabel_3.bounding_box is not None:
+            # Get the bounding box coordinates from each plane
+            axial_box = self.imgLabel_1.bounding_box.rect
+            sagittal_box = self.imgLabel_2.bounding_box.rect
+            #coronal_box = self.imgLabel_3.bounding_box.rect
+            zmin = min(sagittal_box.top(), sagittal_box.bottom())
+            zmax = max(sagittal_box.top(), sagittal_box.bottom())
+
+            # Convert the bounding box coordinates to the appropriate format
+            xmin = min(axial_box.left(), axial_box.right())
+            xmax = max(axial_box.left(), axial_box.right())
+            ymin = min(axial_box.top(), axial_box.bottom())
+            ymax = max(axial_box.top(), axial_box.bottom())
+         
+            box_np = np.array([[xmin, ymin, xmax, ymax]])
+            N, H, W = self.origin_processedvoxel.shape[:]
+            box_256 = box_np / np.array([W, H, W, H]) * 256
+         
+            zstart = int(zmin / 512 * N)
+            zend = int(zmax / 512 * N)
+
+            for i in range(N):
+                
+                img_2d = self.origin_processedvoxel[i, :, :]
+                if i >= zstart and i <= zend:
+                    sam_mask = medsam_inference(medsam_lite_model, self.embedding[i], box_256, H, W)
+
+                    mask_c = np.zeros((H,W), dtype="uint8") # (512, 512)
+                
+                    mask_c[sam_mask != 0] = 255
+                    # self.origin imabe + self.mask => masked_image
+                    masked_image = cv2.add(img_2d, mask_c)
+            
+
+                    # Update the processedvoxel with the masked image
+                    self.processedvoxel[i, :, :] = masked_image
+                
+                else:
+                    self.processedvoxel[i, :, :] = img_2d
+           
+            # Update the segmentation result
+            print("segmentation end")
+            
+            # Update the display
+            self.updateimg()
+            print("Update end")
 
     @staticmethod
     def linear_convert(img):

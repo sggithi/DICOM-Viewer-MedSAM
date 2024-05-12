@@ -323,12 +323,16 @@ medsam_lite_mask_decoder = MaskDecoder(
         iou_head_hidden_dim=256,
 )
 
+###########################################################################################
+########### Create MedSAM_Lite ##########################################################
 medsam_lite_model = MedSAM_Lite(
     image_encoder = medsam_lite_image_encoder,
     mask_decoder = medsam_lite_mask_decoder,
     prompt_encoder = medsam_lite_prompt_encoder
 )
+###########################################################################################
 
+# load checkpoint 
 lite_medsam_checkpoint = torch.load(lite_medsam_checkpoint_path, map_location='cpu')
 medsam_lite_model.load_state_dict(lite_medsam_checkpoint)
 medsam_lite_model.to(device)
@@ -371,6 +375,8 @@ from torch.nn import functional as F
 from PIL import Image
 from segment_anything import sam_model_registry
 
+###########################################################################################
+############### medsam_inference ##########################################################
 
 @torch.no_grad()
 def medsam_inference(medsam_model, img_embed, box_256, height, width):
@@ -399,6 +405,8 @@ def medsam_inference(medsam_model, img_embed, box_256, height, width):
         mode="bilinear",
         align_corners=False,
     )  # (1, 1, gt.shape)
+
+    ######### Output size (256, 256 ###############################)
     low_res_pred = low_res_pred.squeeze().cpu().numpy()  # (256, 256)
     medsam_seg = (low_res_pred > 0.5).astype(np.uint8)
 
