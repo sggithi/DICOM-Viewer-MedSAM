@@ -100,7 +100,7 @@ class CthreeD(QDialog):
         self.boundingBox.setChecked(True)
         self.boundingBox.setStyleSheet('''
                                          QPushButton {
-                                        background-color: #B6C2CE;
+                                        background-color: #0E6AC2;
                                         border-style: solid;
                                         border-color: #A7B4BF;
                                         border-width: 1px;
@@ -228,7 +228,7 @@ class CthreeD(QDialog):
                                            ''')
             self.windowing.setStyleSheet('''
                                          QPushButton {
-                                        background-color: #B6C2CE;
+                                        background-color: #0E6AC2;
                                         border-style: solid;
                                         border-color: #A7B4BF;
                                         border-width: 1px;
@@ -289,7 +289,7 @@ class CthreeD(QDialog):
                                            ''')
             self.boundingBox.setStyleSheet('''
                                          QPushButton {
-                                        background-color: #B6C2CE;
+                                        background-color: #0E6AC2;
                                         border-style: solid;
                                         border-color: #A7B4BF;
                                         border-width: 1px;
