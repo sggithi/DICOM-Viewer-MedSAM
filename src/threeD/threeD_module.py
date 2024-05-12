@@ -441,6 +441,7 @@ class CthreeD(QDialog):
 
         axial = (self.processedvoxel[a_loc, :, :]).astype(np.uint8).copy()
         sagittal = (self.processedvoxel[:, :, s_loc]).astype(np.uint8).copy()
+        
         coronal = (self.processedvoxel[:, c_loc, :]).astype(np.uint8).copy()
 
         self.imgLabel_1.slice_loc = [s_loc, c_loc, a_loc]
@@ -517,19 +518,20 @@ class CthreeD(QDialog):
 
     def generateEvent(self):
         ###################################################################################
-        # self.embedding (N, H, W)
-        # self.bounding_box
-        # for i in range self.processedvoxel.shape[0]:
-        # medsam_infer => 2D mask image??
+        # When user press generate button, start generating mask
+        # Using axial bounding box, axial image embedding with medsam_inference
+        # 
+        # 
         ###################################################################################
-        #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        bbox_shift = 5
+
         print("Generate")
         if self.imgLabel_1.bounding_box is not None: # and self.imgLabel_2.bounding_box is not None and self.imgLabel_3.bounding_box is not None:
             # Get the bounding box coordinates from each plane
             axial_box = self.imgLabel_1.bounding_box.rect
-            #sagittal_box = self.imgLabel_2.bounding_box.rect
+            sagittal_box = self.imgLabel_2.bounding_box.rect
             #coronal_box = self.imgLabel_3.bounding_box.rect
+            zmin = min(sagittal_box.top(), sagittal_box.bottom())
+            zmax = max(sagittal_box.top(), sagittal_box.bottom())
 
             # Convert the bounding box coordinates to the appropriate format
             xmin = min(axial_box.left(), axial_box.right())
@@ -538,25 +540,15 @@ class CthreeD(QDialog):
             ymax = max(axial_box.top(), axial_box.bottom())
          
             box_np = np.array([[xmin, ymin, xmax, ymax]])
-            H, W = self.origin_processedvoxel.shape[1:]
+            N, H, W = self.origin_processedvoxel.shape[:]
             box_256 = box_np / np.array([W, H, W, H]) * 256
+         
+            zstart = int(zmin / 512 * N)
+            zend = int(zmax / 512 * N)
 
-            for i in range(self.origin_processedvoxel.shape[0]):
+            for i in range(zstart, zend + 1):
+                
                 img_2d = self.origin_processedvoxel[i, :, :]
-                # img_3c = np.repeat(img_2d[:, :, None], 3, axis=-1)  # (H, W, 3)
-
-                # # MedSAM Lite preprocessing
-                # img_256 = resize_longest_side(img_3c, 256)
-                # newh, neww = img_256.shape[:2]
-                # img_256 = (img_256 - img_256.min()) / np.clip(
-                #     img_256.max() - img_256.min(), a_min=1e-8, a_max=None
-                # )
-                # img_256_padded = pad_image(img_256, 256)
-                # img_256_tensor = torch.tensor(img_256_padded).float().permute(2, 0, 1).unsqueeze(0).to(device)
-                # with torch.no_grad():
-                #     image_embedding = medsam_lite_model.image_encoder(img_256_tensor)
-
-                # box = get_bbox(np.uint8(self.segmentation_result[i] > 0), bbox_shift)  # (4,)
                 sam_mask = medsam_inference(medsam_lite_model, self.embedding[i], box_256, H, W)
                 
                 mask_c = np.zeros((H,W), dtype="uint8") # (512, 512)
@@ -565,7 +557,7 @@ class CthreeD(QDialog):
                 # self.origin imabe + self.mask => masked_image
                 masked_image = cv2.add(img_2d, mask_c)
         
-                
+
                 # Update the processedvoxel with the masked image
                 self.processedvoxel[i, :, :] = masked_image
                 
