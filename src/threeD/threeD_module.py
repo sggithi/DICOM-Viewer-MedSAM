@@ -13,7 +13,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from .inference_3D import medsam_lite_model, medsam_inference, resize_longest_side, pad_image, get_bbox
+from .inference_3D import medsam_lite_model, medsam_inference, resize_longest_side, pad_image
 # with torch.no_grad():
 #     img_256_tensor = torch.tensor(self.processedvoxel).float().permute(0, 3, 1, 2).to(device)
 #     self.embedding = medsam_lite_model.image_encoder(img_256_tensor)
@@ -330,11 +330,6 @@ class CthreeD(QDialog):
         self.w = self.imgLabel_1.width()
         self.h = self.imgLabel_1.height()
 
-        # # Print the sizes of imgLabel_1, imgLabel_2, and imgLabel_3
-        # print("imgLabel_1 size: width =", self.imgLabel_1.width(), "height =", self.imgLabel_1.height())
-        # print("imgLabel_2 size: width =", self.imgLabel_2.width(), "height =", self.imgLabel_2.height())
-        # print("imgLabel_3 size: width =", self.imgLabel_3.width(), "height =", self.imgLabel_3.height())
-                
         if self.processedvoxel is not None:
             self.updateimg()
 
@@ -471,10 +466,6 @@ class CthreeD(QDialog):
         self.imgLabel_2.processedImage = sagittal_adjusted
         self.imgLabel_3.processedImage = coronal_adjusted
 
-        # Display the adjusted images
-        self.imgLabel_1.display_image(1)
-        self.imgLabel_2.display_image(1)
-        self.imgLabel_3.display_image(1)
         
         # Update the WW and WL label
         self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
