@@ -6,8 +6,6 @@ from PyQt5.QtCore import *
 import numpy as np
 from PyQt5.QtCore import pyqtSignal, Qt
 
-# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-
 class QPaintLabel3(QLabel):
 
     mpsignal = pyqtSignal(str)
@@ -51,9 +49,6 @@ class QPaintLabel3(QLabel):
         self.bounding_box = None
         self.image_loaded = False 
 
-
-
-
         
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:
@@ -69,8 +64,6 @@ class QPaintLabel3(QLabel):
     def mouseMoveEvent(self, event: QMouseEvent):
         super().mouseMoveEvent(event)
         
-        # MARK: BoundingBox
-        # Update the drag_end position for both bounding box and slicer functionality
         if self.parentReference.toggleBoundingBoxEnabled and event.buttons() & Qt.LeftButton:
             if self.bounding_box is not None and self.bounding_box.interactiveResize:
                 self.bounding_box.mouseMoveEvent(event)
@@ -79,13 +72,12 @@ class QPaintLabel3(QLabel):
             self.update()
 
         if self.parentReference.toggleSlicerEnabled and event.buttons() & Qt.LeftButton:
-            # Adjust WW and WL for slicer functionality
             wl_adjustment = self.drag_end.x() - self.drag_start.x()
             ww_adjustment = self.drag_end.y() - self.drag_start.y()
             self.parentReference.windowLevel += wl_adjustment
             self.parentReference.windowWidth = max(1, self.parentReference.windowWidth + ww_adjustment)
             self.parentReference.updateimg()
-            self.drag_start = event.pos()  # Update drag_start to current position for continuous adjustment
+            self.drag_start = event.pos()
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -137,13 +129,10 @@ class QPaintLabel3(QLabel):
 
     def leaveEvent(self, event):
         self.slice_loc = self.slice_loc_restore
-        
         self.update()
         
 
     def display_image(self, window=1):
-       
-      
         self.imgr, self.imgc = self.processedImage.shape[0:2]
         qformat = QImage.Format_Indexed8
         if len(self.processedImage.shape) == 3:  # rows[0], cols[1], channels[2]
@@ -164,7 +153,6 @@ class QPaintLabel3(QLabel):
 
     def paintEvent(self, event):
         super().paintEvent(event)
-            
         loc = QFont()
         loc.setPixelSize(10)
         loc.setBold(True)
