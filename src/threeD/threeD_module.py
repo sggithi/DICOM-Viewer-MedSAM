@@ -436,7 +436,6 @@ class CthreeD(QDialog):
 
         axial = (self.processedvoxel[a_loc, :, :]).astype(np.uint8).copy()
         sagittal = (self.processedvoxel[:, :, s_loc]).astype(np.uint8).copy()
-        
         coronal = (self.processedvoxel[:, c_loc, :]).astype(np.uint8).copy()
 
         self.imgLabel_1.slice_loc = [s_loc, c_loc, a_loc]
@@ -469,6 +468,11 @@ class CthreeD(QDialog):
         
         # Update the WW and WL label
         self.wwlLabel.setText(f"WW: {self.windowWidth}, WL: {self.windowLevel}")
+
+        # Display the images
+        self.imgLabel_1.display_image(1)
+        self.imgLabel_2.display_image(1)
+        self.imgLabel_3.display_image(1)
 
         # Update the display of the segmentation result on the axial, sagittal, and coronal planes
         if self.segmentation_result is not None:

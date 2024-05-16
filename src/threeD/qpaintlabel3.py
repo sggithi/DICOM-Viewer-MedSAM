@@ -48,8 +48,6 @@ class QPaintLabel3(QLabel):
         self.crosshairDrawingNeeded.connect(self.update)
 
         ## for MedSAM
-     
-
         self.bounding_box = None
         self.image_loaded = False 
 
@@ -84,11 +82,10 @@ class QPaintLabel3(QLabel):
             # Adjust WW and WL for slicer functionality
             wl_adjustment = self.drag_end.x() - self.drag_start.x()
             ww_adjustment = self.drag_end.y() - self.drag_start.y()
-            self.parent().windowLevel += wl_adjustment
-            self.parent().windowWidth = max(1, self.parent().windowWidth + ww_adjustment)
-            self.parent().updateimg()
-            self.drag_start = self.drag_end
-
+            self.parentReference.windowLevel += wl_adjustment
+            self.parentReference.windowWidth = max(1, self.parentReference.windowWidth + ww_adjustment)
+            self.parentReference.updateimg()
+            self.drag_start = event.pos()  # Update drag_start to current position for continuous adjustment
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -189,11 +186,6 @@ class QPaintLabel3(QLabel):
             for handle_rect in self.bounding_box.handles.values():
                 painter.drawRect(handle_rect)
      
-
-# def linear_convert(img):
-#     convert_scale = 255.0 / (np.max(img) - np.min(img))
-#     converted_img = convert_scale*img-(convert_scale*np.min(img))
-#     return converted_img
 
 
 class ResizableRectItem(QObject):
