@@ -123,9 +123,6 @@ def medsam_inference(medsam_model, img_embed, box_256, height, width):
         multimask_output=False,
     )
 
-    # Forward pass to get low resolution masks
-    # low_res_masks = medsam_model.forward(img_embed, box_256)  # (B, 1, 256, 256)
-
     # Sigmoid activation: convert logits to probabilities
     low_res_pred = torch.sigmoid(low_res_logits)  # (B, 1, 256, 256)
 
