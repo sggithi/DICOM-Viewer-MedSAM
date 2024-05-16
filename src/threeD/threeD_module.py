@@ -293,7 +293,6 @@ class CthreeD(QDialog):
         self.generateMask.setStyleSheet(self.get_button_style("#013769"))
 
 
-
     def set_directory(self):
         os.chdir(self.directory)
 
