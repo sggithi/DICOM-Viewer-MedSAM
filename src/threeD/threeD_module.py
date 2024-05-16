@@ -131,8 +131,8 @@ class CthreeD(QDialog):
         self.origin_processedvoxel = None
 
     def UiComponents(self): 
-        self.windowWidth = 400  # Default window width
-        self.windowLevel = 40   # Default window level
+        self.windowWidth = 250  # Default window width
+        self.windowLevel = 50   # Default window level
 
         self.toggleSlicerEnabled = False
         self.toggleBoundingBoxEnabled = True
