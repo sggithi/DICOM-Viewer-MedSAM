@@ -13,8 +13,8 @@ class CMainWindow(QMainWindow):
         super(CMainWindow, self).__init__()
         loadUi('mainwindow.ui', self)
         self.showMaximized()
-        self.twoDaction.changed.connect(self.activate_2d)
-        self.threeDaction.changed.connect(self.activate_3d)
+#        self.twoDaction.changed.connect(self.activate_2d)
+#        self.threeDaction.changed.connect(self.activate_3d)
         self.maindirectory = os.getcwd()
         self.ui_2D = None
         self.ui_3D = None
@@ -23,6 +23,7 @@ class CMainWindow(QMainWindow):
         self.justclose = False
         self.first2D = True
         self.first3D = True
+        self.activate_3d()
 
     def close2d(self):
         os.chdir(self.maindirectory)

@@ -173,6 +173,7 @@ class CthreeD(QDialog):
         hbox.insertSpacerItem(0, spacer)
         hbox.insertSpacerItem(2, spacer)
 
+    # dicom viewer 에서 예상 외의 동작을 방지하기 위한 button 초기 상태
     def setup_buttons(self):
         self.dicomButton.clicked.connect(self.dicom_clicked)
         self.volButton.clicked.connect(self.open_3dview)
@@ -183,8 +184,8 @@ class CthreeD(QDialog):
         self.windowing.setChecked(False)
         self.windowing.setEnabled(False)
         self.boundingBox.setEnabled(False)
-        self.generateMask.setEnabled(False)
         self.generateMask.clicked.connect(self.generateEvent)
+
 
     def get_button_style(self, color):
         return f'''
@@ -323,6 +324,9 @@ class CthreeD(QDialog):
         self.load_dicomfile(dname)
         self.windowing.setEnabled(True)
         self.boundingBox.setEnabled(True)
+        self.update_button_styles()
+        self.generateMask.setEnabled(True)
+        self.generateMask.setStyleSheet(self.get_button_style("#013769"))
 
 
     def load_dicomfile(self, dname):
