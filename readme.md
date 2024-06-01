@@ -7,28 +7,10 @@
   <br>
 </p>
 
-## 실행 화면
-Main Window를 열면，좌측 상단의 메뉴에서 2D processing와 3D processing 선택 항목이 있습니다. 그 중 3D processing 메뉴에는 3D volume reconstruction 기능이 있습니다.
 
 ### Main Window
 <a href="https://github.com/wenyalintw/Dicom_Viewer">
     <img src="resources/mainwindow.png" alt="mainwindow" width="960" height="480">
-</a>
-
-### 2D processing
-포함하는 기능은 다음과 같습니다.
-- Load Image
-- Save Image
-- Convert to gray scale
-- Restore
-- Thresholding
-- Region Growing
-- Morthology (Dilation, Erosion, Opening, Closing)
-- Edge Detection (Laplacian, Sobel, Perwitt, Frei & Chen)
-- Drawing
-<br>
-<a href="https://github.com/wenyalintw/Dicom_Viewer">
-    <img src="resources/2D_Processing.jpg" alt="2D_Processing" width="960" height="480">
 </a>
 
 
@@ -56,7 +38,6 @@ Main Window를 열면，좌측 상단의 메뉴에서 2D processing와 3D proces
 ## How to use it?
 Project root will be **/src**, just clone it and run mainwindow.py.
 work_dir/MedSAM 폴더에 https://drive.google.com/drive/folders/1ETWmi4AiniJeWOt6HAsYgTjYv_fkgzoN checkpoint 저장
-
 
 
 Strictly follow the package version in requirements.txt is not necessary.
