@@ -3,7 +3,7 @@
     <img src="resources/brain.png" alt="Dicom Viewer" width="96" height="96">
   </a>
   <h2 align="center">DicomViewer GUI (Dicom Viewer)</h2>
-  <p align="center"> 2D/3D Dicom 영상 활용 가능</p>
+  <p align="center"> 3D Dicom Viewer</p>
   <br>
 </p>
 
