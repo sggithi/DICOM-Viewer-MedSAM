@@ -40,4 +40,4 @@ Strictly follow the package version in requirements.txt is not necessary.
 
 ###### MIT License (2019), Wen-Ya Lin
 ###### INFINITT HealthCare (2024)
-###### SNU 창의적통합설계, Hana Oh, Jimin Seo, Jahyun Yun (2024)
+###### SNU CREATIVE INTEGRATED DESIGN 2  (2024), Hana Oh, Jimin Seo, Jahyun Yun
