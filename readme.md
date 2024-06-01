@@ -25,9 +25,8 @@
 - Show slice index coordinate
 - 3D volume reconstruction
 <br>
-<a href="https://github.com/wenyalintw/Dicom_Viewer">
-    <img src="resources/3D_Processing.jpg" alt="3D_Processing" width="960" height="480">
-</a>
+
+![스크린샷 2024-05-31 오후 9 38 54](https://github.com/sggithi/Dicom-Viewer-MedSAM/assets/52576276/45a5db7e-f612-470d-b846-4bfe735893f4)
 
 ### 3D volume reconstruction
 <br>
