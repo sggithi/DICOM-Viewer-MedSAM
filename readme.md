@@ -37,6 +37,5 @@ Strictly follow the package version in requirements.txt is not necessary.
 ## Acknowledgments
 - Dicom Viewer reconstruction modified from [wenyalintw's Repo]([https://www.raddq.com/dicom-processing-segmentation-visualization-in-python/](https://github.com/wenyalintw/Dicom-Viewer))
 
-###### MIT License (2019), Wen-Ya Lin
 ###### INFINITT HealthCare (2024)
 ###### SNU CREATIVE INTEGRATED DESIGN 2  (2024), Hana Oh, Jimin Seo, Jahyun Yun
