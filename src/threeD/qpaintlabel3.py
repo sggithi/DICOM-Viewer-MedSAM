@@ -24,7 +24,7 @@ class QPaintLabel3(QLabel):
         self.pos_x = 20
         self.pos_y = 20
         self.imgr, self.imgc = None, None
-      
+        
         self.pos_xy = []
         self.crosscenter = [0, 0]
         self.mouseclicked = None
@@ -42,14 +42,14 @@ class QPaintLabel3(QLabel):
         self.toggleBoundingBoxEnabled = False
         self.toggleSlicerEnabled = False
 
-        self.pen_color = Qt.red  # Default pen color
+        self.pen_color = Qt.red  # 기본 펜 색상
         self.crosshairDrawingNeeded.connect(self.update)
 
-        ## for MedSAM
+        ## MedSAM을 위한 변수
         self.bounding_box = None
         self.image_loaded = False 
 
-        
+    # 마우스 버튼을 눌렀을 때 이벤트 처리
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:
             if self.bounding_box is None or not self.bounding_box.handleAt(event.pos()):
@@ -59,8 +59,7 @@ class QPaintLabel3(QLabel):
                 self.bounding_box.mousePressEvent(event)
             self.update()
 
-
-
+    # 마우스를 움직였을 때 이벤트 처리
     def mouseMoveEvent(self, event: QMouseEvent):
         super().mouseMoveEvent(event)
         
@@ -79,6 +78,7 @@ class QPaintLabel3(QLabel):
             self.parentReference.updateimg()
             self.drag_start = event.pos()
 
+    # 마우스 버튼을 뗐을 때 이벤트 처리
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.drag_end = event.pos()
@@ -88,7 +88,7 @@ class QPaintLabel3(QLabel):
                     self.bounding_box = ResizableRectItem(rect)
                     self.bounding_box.rectResized.connect(self.handle_bounding_box_resized)
 
-                    # Create ResizableRectItem instances for the other planes
+                    # 다른 평면에 대해 ResizableRectItem 인스턴스 생성
                     if self.type == 'axial':
                         sagittal_rect = self.parentReference.map_rect_to_plane(rect, 'axial', 'sagittal')
                         coronal_rect = self.parentReference.map_rect_to_plane(rect, 'axial', 'coronal')
@@ -109,7 +109,7 @@ class QPaintLabel3(QLabel):
                     self.parentReference.imgLabel_2.bounding_box.rectResized.connect(self.parentReference.update_bounding_boxes)
                     self.parentReference.imgLabel_3.bounding_box.rectResized.connect(self.parentReference.update_bounding_boxes)
                     
-                    # Update the other planes immediately
+                    # 즉시 다른 평면 업데이트
                     self.parentReference.imgLabel_1.update()
                     self.parentReference.imgLabel_2.update()
                     self.parentReference.imgLabel_3.update()
@@ -118,20 +118,19 @@ class QPaintLabel3(QLabel):
                     self.bounding_box.mouseReleaseEvent(event)
                 self.update()
 
-            
-                
                 self.drag_start = None
                 self.drag_end = None
 
+    # 바운딩 박스가 크기 조정되었을 때 호출되는 함수
     def handle_bounding_box_resized(self, rect):
-        self.bounding_box_resized.emit(rect) # Emit the signal with the updated rectangle
+        self.bounding_box_resized.emit(rect)  # 업데이트된 사각형과 함께 신호를 발행
 
-
+    # 마우스가 라벨 영역을 벗어났을 때 이벤트 처리
     def leaveEvent(self, event):
         self.slice_loc = self.slice_loc_restore
         self.update()
         
-
+    # 이미지를 표시하는 함수
     def display_image(self, window=1):
         self.imgr, self.imgc = self.processedImage.shape[0:2]
         qformat = QImage.Format_Indexed8
@@ -151,6 +150,7 @@ class QPaintLabel3(QLabel):
             self.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
             self.update()
 
+    # 페인트 이벤트 처리
     def paintEvent(self, event):
         super().paintEvent(event)
         loc = QFont()
@@ -164,18 +164,17 @@ class QPaintLabel3(QLabel):
             painter = QPainter(self)
             painter.drawPixmap(self.rect(), pixmap)
 
-        # Draw the bounding box if it's enabled
-        if self.parentReference.toggleBoundingBoxEnabled and self.bounding_box is not None and self.image_loaded == True:
+        # 바운딩 박스를 그리기
+        if self.parentReference.toggleBoundingBoxEnabled and self.bounding_box is not None and self.image_loaded:
             painter.setPen(QPen(Qt.red, 3))
             painter.drawRect(self.bounding_box.rect)
 
-            # Draw handles
+            # 핸들 그리기
             painter.setBrush(QBrush(Qt.red))
             for handle_rect in self.bounding_box.handles.values():
                 painter.drawRect(handle_rect)
-     
 
-
+# 크기 조정 가능한 사각형 항목 클래스
 class ResizableRectItem(QObject):
     rectResized = pyqtSignal(QRectF)
 
@@ -183,36 +182,38 @@ class ResizableRectItem(QObject):
         super().__init__(parent)
         self.rect = rect
         self.handles = {}
-        self.handleWidth = 15  # Width of the handle
-        self.handleHeight = 15  # Height of the handle
+        self.handleWidth = 15  # 핸들의 너비
+        self.handleHeight = 15  # 핸들의 높이
         self.updateHandlesPositions()
         self.interactiveResize = False
         self.currentHandle = None
 
+    # 특정 위치에 핸들이 있는지 확인하는 함수
     def handleAt(self, point):
         for handle, rect in self.handles.items():
             if rect.contains(point):
                 return handle
         return None
 
+    # 핸들의 위치를 업데이트하는 함수
     def updateHandlesPositions(self):
         w = self.handleWidth
         h = self.handleHeight
         rect = self.rect
 
-        # Calculate the positions of the handles
+        # 핸들의 위치를 계산
         topMiddle = QPointF(rect.left() + (rect.width() - w) / 2, rect.top() - h / 2)
         bottomMiddle = QPointF(rect.left() + (rect.width() - w) / 2, rect.bottom() + h / 2 - h)
         leftMiddle = QPointF(rect.left() - w / 2, rect.top() + (rect.height() - h) / 2)
         rightMiddle = QPointF(rect.right() + w / 2 - w, rect.top() + (rect.height() - h) / 2)
 
-        # Create QRectF objects for each handle
+        # 각 핸들에 대해 QRectF 객체 생성
         self.handles['top'] = QRectF(topMiddle, QSizeF(w, h))
         self.handles['bottom'] = QRectF(bottomMiddle, QSizeF(w, h))
         self.handles['left'] = QRectF(leftMiddle, QSizeF(w, h))
         self.handles['right'] = QRectF(rightMiddle, QSizeF(w, h))
 
-
+    # 마우스 버튼을 눌렀을 때 이벤트 처리
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.currentHandle = self.handleAt(event.pos())
@@ -220,15 +221,18 @@ class ResizableRectItem(QObject):
             if self.interactiveResize:
                 event.accept()
 
+    # 마우스를 움직였을 때 이벤트 처리
     def mouseMoveEvent(self, event):
         if self.interactiveResize:
             self.resizeItem(event.pos())
             event.accept()
 
+    # 마우스 버튼을 뗐을 때 이벤트 처리
     def mouseReleaseEvent(self, event):
         self.interactiveResize = False
         self.currentHandle = None
 
+    # 항목의 크기를 조정하는 함수
     def resizeItem(self, pos):
         if 'top' == self.currentHandle:
             newTop = min(max(pos.y(), 0), 511 - self.rect.height())
