@@ -35,8 +35,7 @@ work_dir/MedSAM 폴더에 https://drive.google.com/drive/folders/1ETWmi4AiniJeWO
 Strictly follow the package version in requirements.txt is not necessary.
 
 ## Acknowledgments
-- [brain.png](https://github.com/wenyalintw/Dicom-Viewer/blob/master/resources/brain.png) licensed under "CC BY 3.0" downloaded from [ICONFINDER](https://www.iconfinder.com/icons/1609653/brain_organs_icon) 
-- 3D volumn reconstruction modified from [Howard Chen's Post](https://www.raddq.com/dicom-processing-segmentation-visualization-in-python/)
+- Dicom Viewer reconstruction modified from [wenyalintw's Repo]([https://www.raddq.com/dicom-processing-segmentation-visualization-in-python/](https://github.com/wenyalintw/Dicom-Viewer))
 
 ###### MIT License (2019), Wen-Ya Lin
 ###### INFINITT HealthCare (2024)
