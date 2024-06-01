@@ -22,7 +22,7 @@
      <widget class="QLabel" name="label">
       <property name="font">
        <font>
-        <family>Futura</family>
+        <family>Arial</family>
         <pointsize>48</pointsize>
         <italic>true</italic>
        </font>
@@ -117,7 +117,7 @@
     <bool>false</bool>
    </property>
    <property name="visible">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="menuRole">
     <enum>QAction::TextHeuristicRole</enum>
