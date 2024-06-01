@@ -9,9 +9,7 @@
 
 
 ### Main Window
-<a href="https://github.com/wenyalintw/Dicom_Viewer">
-    <img src="resources/mainwindow.png" alt="mainwindow" width="960" height="480">
-</a>
+![스크린샷 2024-05-31 오후 9 49 48](https://github.com/sggithi/Dicom-Viewer-MedSAM/assets/52576276/a8e1f091-ad03-4e65-a644-35147a703a95)
 
 
 ### 3D processing
