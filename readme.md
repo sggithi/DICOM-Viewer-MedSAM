@@ -26,11 +26,6 @@
 
 ![스크린샷 2024-05-31 오후 9 38 54](https://github.com/sggithi/Dicom-Viewer-MedSAM/assets/52576276/45a5db7e-f612-470d-b846-4bfe735893f4)
 
-### 3D volume reconstruction
-<br>
-<a href="https://github.com/wenyalintw/Dicom_Viewer">
-    <img src="resources/3D_Volume.jpg" alt="3D_Volume" width="480" height="480">
-</a>
 
 ## How to use it?
 Project root will be **/src**, just clone it and run mainwindow.py.
@@ -44,3 +39,5 @@ Strictly follow the package version in requirements.txt is not necessary.
 - 3D volumn reconstruction modified from [Howard Chen's Post](https://www.raddq.com/dicom-processing-segmentation-visualization-in-python/)
 
 ###### MIT License (2019), Wen-Ya Lin
+###### INFINITT HealthCare (2024)
+###### SNU 창의적통합설계, Hana Oh, Jimin Seo, Jahyun Yun (2024)
