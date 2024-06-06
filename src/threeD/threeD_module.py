@@ -408,6 +408,7 @@ class CthreeD(QDialog):
         axial = self.processedvoxel[a_loc, :, :].astype(np.uint8).copy()
         sagittal = self.processedvoxel[:, :, s_loc].astype(np.uint8).copy()
         coronal = self.processedvoxel[:, c_loc, :].astype(np.uint8).copy()
+
         self.set_slice_locations([s_loc, c_loc, a_loc])
         self.update_cross_centers(s_loc, c_loc, a_loc)
         axial_adjusted = self.adjust_image_based_on_ww_wl(axial, self.windowWidth, self.windowLevel)

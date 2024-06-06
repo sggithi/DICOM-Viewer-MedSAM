@@ -84,7 +84,7 @@ def load_scan(path):
 
 
 def get_pixels_hu(scans):
-    image = np.flipud(np.stack([s.pixel_array for s in scans]))
+    image = np.stack([s.pixel_array for s in scans])
     # Convert to int16 (from sometimes int16),
     # should be possible as values should always be low enough (<32k)
     image = image.astype(np.int16)
