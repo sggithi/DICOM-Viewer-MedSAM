@@ -25,7 +25,12 @@ torch.manual_seed(2023) #Sets the seed for generating random numbers on the CPU.
 torch.cuda.manual_seed(2023)  #Set the seed for generating random numbers for the current GPU
 np.random.seed(2023)
 
-medsam_lite_checkpoint_path = "./work_dir/LiteMedSAM/lite_medsam.pth"
+# medsam_lite_checkpoint_path = "./work_dir/LiteMedSAM/lite_medsam.pth"
+###################################
+#medsam_lite_checkpoint_path = "./work_dir/LiteMedSAM/medsam_lite_best_image_size.pth"#
+#medsam_lite_checkpoint_path = "./work_dir/LiteMedSAM/medsam_lite_best_basic.pth"
+#medsam_lite_checkpoint_path = "./work_dir/LiteMedSAM/medsam_lite_best_5.pth"
+medsam_lite_checkpoint_path = "./work_dir/LiteMedSAM/medsam_lite_best_10.pth"
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 bbox_shift = 5
 image_size = 256
@@ -189,6 +194,9 @@ medsam_lite_model = MedSAM_Lite(
 )
 
 medsam_lite_checkpoint = torch.load(medsam_lite_checkpoint_path, map_location='cpu')
-medsam_lite_model.load_state_dict(medsam_lite_checkpoint)
+############################################## Fine Tuning Model
+medsam_lite_model.load_state_dict(medsam_lite_checkpoint["model"], strict=True)
+################################################################
+# medsam_lite_model.load_state_dict(medsam_lite_checkpoint)
 medsam_lite_model.to(device)
 medsam_lite_model.eval()
