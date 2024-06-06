@@ -29,7 +29,11 @@
 
 ## How to use it?
 Project root will be **/src**, just clone it and run mainwindow.py.
-work_dir/MedSAM 폴더에 https://drive.google.com/drive/folders/1ETWmi4AiniJeWOt6HAsYgTjYv_fkgzoN checkpoint 저장
+
+Load Checkpoint in work_dir/LiteMedSAM
+
+base checkpoint(from bowang-lab/MedSAM) https://drive.google.com/drive/folders/1ETWmi4AiniJeWOt6HAsYgTjYv_fkgzoN checkpoint 저장
+Fine Tuned Checkpoint (https://drive.google.com/drive/folders/1h0RgLM06RTMNbeLLVMD5opFw4kuaFNnG?usp=drive_link)
 
 
 Strictly follow the package version in requirements.txt is not necessary.
