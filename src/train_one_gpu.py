@@ -116,9 +116,6 @@ if not exists(imgs_path):
 gt_files = sorted(glob(join(gts_path, '*.npy')))
 img_files = sorted(glob(join(imgs_path, '*.npy')))
 
-# print(f"GT files: {gt_files}")
-# print(f"IMG files: {img_files}")
-
 # Check if there are no files
 if len(gt_files) == 0 or len(img_files) == 0:
     raise ValueError(f"No .npy files found in the specified directories: {gts_path} or {imgs_path}")
@@ -158,7 +155,7 @@ class NpyDataset(Dataset):
         img_padded = self.pad_image(img_resize)
         img_padded = np.transpose(img_padded, (2, 0, 1))
         assert np.max(img_padded) <= 1.0 and np.min(img_padded) >= 0.0, 'Image should be normalized to [0, 1]'
-
+  
         gt = np.load(gt_file, 'r', allow_pickle=True)
         gt = cv2.resize(gt, (img_resize.shape[1], img_resize.shape[0]), interpolation=cv2.INTER_NEAREST).astype(np.uint8)
         gt = self.pad_image(gt)
@@ -177,27 +174,37 @@ class NpyDataset(Dataset):
             if random.random() > 0.5:
                 img_padded = np.ascontiguousarray(np.flip(img_padded, axis=-2))
                 gt2D = np.ascontiguousarray(np.flip(gt2D, axis=-2))
-
+        
+        # Set Ground Truth
         gt2D = np.uint8(gt2D > 0)
+        
+        ############ Set Bounding Box ################################## 
+        # Minimum indices from Grount Truth
         y_indices, x_indices = np.where(gt2D > 0)
         x_min, x_max = np.min(x_indices), np.max(x_indices)
         y_min, y_max = np.min(y_indices), np.max(y_indices)
 
         H, W = gt2D.shape
+        # 5 % margin Bounding Box
         # x_min = max(0, x_min - W*0.05)
         # x_max = min(W-1, x_max +  W*0.05)
         # y_min = max(0, y_min - H*0.05)
         # y_max = min(H-1, y_max + H*0.05)      
-
+        
+        # 10 % margin Bounding Box
         # x_min = max(0, x_min - W*0.1)
         # x_max = min(W-1, x_max +  W*0.1)
         # y_min = max(0, y_min - H*0.1)
-        # y_max = min(H-1, y_max + H*0.1)     
+        # y_max = min(H-1, y_max + H*0.1)  
+        
+        # Basic Case (Add a random integer to the minimum index)   
         x_min = max(0, x_min - random.randint(0, self.bbox_shift))
         x_max = min(W-1, x_max + random.randint(0, self.bbox_shift))
         y_min = max(0, y_min - random.randint(0, self.bbox_shift))
         y_max = min(H-1, y_max + random.randint(0, self.bbox_shift))
         bboxes = np.array([x_min, y_min, x_max, y_max]) # bound box shape
+        
+        # Image Size Bounding Box
         #bboxes = np.array([0, 0, 256, 256])
 
 
@@ -352,6 +359,7 @@ class MedSAM_Lite(nn.Module):
         )
         return masks
 
+######################## MedSAM Structure ##########################
 medsam_lite_image_encoder = TinyViT(
     img_size=256,
     in_chans=3,
@@ -398,10 +406,10 @@ if medsam_lite_checkpoint is not None:
     if isfile(medsam_lite_checkpoint):
         print(f"Finetuning with pretrained weights {medsam_lite_checkpoint}")
         medsam_lite_ckpt = torch.load(medsam_lite_checkpoint, map_location="cpu")
-        #print("epoch", medsam_lite_checkpoint['epoch'])
+
+        # Get Pretrained Model ##################################
         medsam_lite_model.load_state_dict(medsam_lite_ckpt, strict=True)
-        ######### 
-        #medsam_lite_model.load_state_dict(medsam_lite_ckpt["model"], strict=True)
+        ########################################################
     else:
         print(f"Pretained weights {medsam_lite_checkpoint} not found, training from scratch")
         
@@ -463,16 +471,15 @@ for epoch in range(start_epoch + 1, num_epochs + 1):
         l_iou = iou_loss(iou_pred, iou_gt)
         ## loss function######################################
         loss = mask_loss + iou_loss_weight * l_iou 
-        # loss = l_iou
         ########################################################
         epoch_loss[step] = loss.item()
         epoch_iou_loss[step] = l_iou.item()
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        # pbar.set_description(f"Epoch {epoch} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, loss: {loss.item():.4f}, iou_loss:{l_iou}")
-    
+        
     with torch.no_grad():
+        ######## Test Loss #######################
         for step, batch in enumerate(test_loader):
             image = batch["image"]
             gt2D = batch["gt2D"]
@@ -505,9 +512,7 @@ for epoch in range(start_epoch + 1, num_epochs + 1):
         "loss": epoch_loss_reduced,
         "best_loss": best_loss,
     }
-    ## test loss ###########
-     
-    ###################################################################### 
+
     # basic : minimum / 5 % / image size
     torch.save(checkpoint, join(work_dir, "medsam_lite_latest.pth"))
     if epoch_loss_reduced < best_loss:
