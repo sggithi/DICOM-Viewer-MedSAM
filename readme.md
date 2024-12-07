@@ -29,7 +29,9 @@
 
 ## How to use it?
 Project root will be **/src**, just clone it and run mainwindow.py.
-
+~~~
+python run mainwindow.py
+~~~
 Load Checkpoint in work_dir/LiteMedSAM
 
 base checkpoint(from bowang-lab/MedSAM) https://drive.google.com/drive/folders/1ETWmi4AiniJeWOt6HAsYgTjYv_fkgzoN checkpoint 저장
